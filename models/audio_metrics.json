@@ -1,0 +1,12 @@
+{
+  "cv_f1_macro_mean": 0.9886814750182442,
+  "cv_f1_macro_std": 0.008288546505667379,
+  "training_accuracy": 1.0,
+  "class_names": [
+    "ERRATIC_SPEECH",
+    "SLOW_LABORED",
+    "NORMAL_FOCUSED",
+    "FAST_ENERGIZED",
+    "RAPID_SCATTERED"
+  ]
+}

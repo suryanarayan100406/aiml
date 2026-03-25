@@ -1,0 +1,31 @@
+{
+  "best_params": {
+    "class_weight": "balanced",
+    "max_depth": null,
+    "min_samples_split": 2,
+    "n_estimators": 200
+  },
+  "cv_f1_macro": 0.9819957559621036,
+  "training_f1_macro": 1.0,
+  "average_ece": 0.11732926682511743,
+  "feature_importances": {
+    "distraction_count_norm": 0.15248005098004397,
+    "cognitive_demand_score": 0.13945293911219978,
+    "focus_ratio": 0.13675557381512357,
+    "task_class_encoded": 0.1203006780417746,
+    "tab_count_norm": 0.11745095964227896,
+    "speech_class": 0.08256557555826816,
+    "fluency_score": 0.08025151683509,
+    "task_confidence": 0.06452508346246344,
+    "wpm_norm": 0.0440979563187278,
+    "phone_visible": 0.03493778270791682,
+    "speech_confidence": 0.02718188352611306
+  },
+  "class_names": [
+    "PSEUDO_WORKING",
+    "TASK_SWITCHING",
+    "DISTRACTED",
+    "SOFT_FLOW",
+    "DEEP_FLOW"
+  ]
+}

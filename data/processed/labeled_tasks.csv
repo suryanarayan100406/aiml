@@ -1,0 +1,1001 @@
+text,label,label_name,cognitive_demand
+Design database schema for undo-redo with normalization,0,DEEP_WORK,0.913
+Compose original background music for dark mode meditation mode,2,CREATIVE,0.728
+Fix broken link in getting started documentation,1,SHALLOW_WORK,0.093
+Draft SOW document for dark mode consulting engagement,4,COMMUNICATION,0.38
+Add missing type annotations to auth module,1,SHALLOW_WORK,0.347
+Add environment variable for logging setting,1,SHALLOW_WORK,0.0
+Process expense reports for January purchases,3,ADMINISTRATIVE,0.305
+Add default value for username in analytics model,1,SHALLOW_WORK,0.371
+Draft SOW document for export consulting engagement,4,COMMUNICATION,0.473
+Create onboarding documentation for dashboard SDK users,4,COMMUNICATION,0.611
+Create onboarding checklist for new backend engineer hire,3,ADMINISTRATIVE,0.477
+Review and categorize incoming support tickets for triage,3,ADMINISTRATIVE,0.343
+Design fault-tolerant dashboard with automatic failover and recovery,0,DEEP_WORK,0.811
+Optimize messaging query performance reducing latency by 50%,0,DEEP_WORK,1.0
+Design award-worthy UI for multi-tenant settings panel,2,CREATIVE,0.599
+Refactor the cache codebase to use decorator pattern,0,DEEP_WORK,0.793
+Draft SOW document for real-time sync consulting engagement,4,COMMUNICATION,0.612
+Update API version number to 4.0.0,1,SHALLOW_WORK,0.425
+Run linter and fix formatting issues in inventory,1,SHALLOW_WORK,0.358
+Write technical specification for undo-redo architecture,0,DEEP_WORK,0.707
+Create motion design for gateway state transitions,2,CREATIVE,0.868
+Write unit tests for the billing engine covering edge cases,0,DEEP_WORK,0.732
+Update API version number to 3.2.1,1,SHALLOW_WORK,0.224
+Create onboarding documentation for billing SDK users,4,COMMUNICATION,0.598
+Add logging to analytics endpoint,1,SHALLOW_WORK,0.099
+Write compiler pass for quicksort optimization in the build system,0,DEEP_WORK,1.0
+Audit payment service uptime logs for last month,3,ADMINISTRATIVE,0.251
+Add .env.example file with required variables,1,SHALLOW_WORK,0.172
+Pin moment to specific version for stability,1,SHALLOW_WORK,0.442
+Implement OAuth 2.0 authentication flow with token refresh,0,DEEP_WORK,0.987
+Brainstorm innovative solutions for mobile performance user pain point,2,CREATIVE,0.677
+Coordinate vendor contract renewal for Notion licenses,3,ADMINISTRATIVE,0.407
+Write blog post about our two-factor auth technical architecture,4,COMMUNICATION,0.55
+Implement distributed gradient descent consensus protocol for payment,0,DEEP_WORK,0.789
+Brainstorm innovative solutions for retention user pain point,2,CREATIVE,0.839
+Add input validation for date_of_birth field in payment form,1,SHALLOW_WORK,0.122
+Pin axios to specific version for stability,1,SHALLOW_WORK,0.407
+Run linter and fix formatting issues in messaging,1,SHALLOW_WORK,0.352
+Update logging configuration for staging environment,1,SHALLOW_WORK,0.249
+Draft proposal for undo-redo partnership opportunity,4,COMMUNICATION,0.603
+Draft email to design team about performance optimization deadline change,4,COMMUNICATION,0.552
+Design and implement caching strategy for scheduling reducing DB load,0,DEEP_WORK,0.874
+Write incident postmortem for the payment outage last week,4,COMMUNICATION,0.557
+Coordinate vendor contract renewal for Confluence licenses,3,ADMINISTRATIVE,0.475
+Design gamification system for version history user engagement,2,CREATIVE,0.771
+Update CI pipeline to use Node 1.12.0,1,SHALLOW_WORK,0.209
+Design new onboarding flow for first-time student users,2,CREATIVE,0.527
+Write technical blog comparing dynamic programming vs alternative approaches,4,COMMUNICATION,0.412
+Draft proposal for push notification partnership opportunity,4,COMMUNICATION,0.523
+Write compiler pass for k-means optimization in the build system,0,DEEP_WORK,0.896
+Record demo video showing real-time sync new capabilities,4,COMMUNICATION,0.627
+Compose apology communication regarding search service disruption,4,COMMUNICATION,0.282
+Design data visualization dashboard for geospatial metrics,2,CREATIVE,0.838
+Analyze log dataset and build regression model,0,DEEP_WORK,0.813
+Move constants.ts to the billing directory,1,SHALLOW_WORK,0.328
+Create typography system for Luminary design language,2,CREATIVE,0.961
+Create illustration set for API reference help center articles,2,CREATIVE,0.727
+Coordinate vendor contract renewal for Confluence licenses,3,ADMINISTRATIVE,0.155
+Brainstorm innovative solutions for retention user pain point,2,CREATIVE,0.752
+Create onboarding checklist for new QA hire,3,ADMINISTRATIVE,0.345
+Prepare talking points for design review customer call,4,COMMUNICATION,0.6
+Update migration JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.411
+Clean up unused imports in inventory files,1,SHALLOW_WORK,0.374
+Create onboarding documentation for messaging SDK users,4,COMMUNICATION,0.469
+Draft proposal for export partnership opportunity,4,COMMUNICATION,0.689
+Design immersive auto-save experience with parallax scrolling,2,CREATIVE,0.712
+Update S3 configuration for staging environment,1,SHALLOW_WORK,0.199
+Design award-worthy UI for push notification settings panel,2,CREATIVE,0.606
+Update project timeline in Asana for Q4 milestones,3,ADMINISTRATIVE,0.354
+Update API version number to 3.2.1,1,SHALLOW_WORK,0.218
+Debug the race condition crash in the payment service,0,DEEP_WORK,0.869
+Create brand storytelling narrative for AuraSync campaign,2,CREATIVE,0.839
+Compose original background music for push notification meditation mode,2,CREATIVE,0.732
+Archive completed search project files and close tickets,3,ADMINISTRATIVE,0.586
+Create brand storytelling narrative for FlowState campaign,2,CREATIVE,0.814
+Archive completed analytics project files and close tickets,3,ADMINISTRATIVE,0.161
+Draft proposal for push notification partnership opportunity,4,COMMUNICATION,0.326
+Add missing type annotations to notification module,1,SHALLOW_WORK,0.179
+Update security JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.253
+Update database configuration for staging environment,1,SHALLOW_WORK,0.238
+Design data visualization dashboard for geospatial metrics,2,CREATIVE,0.589
+Implement custom gradient descent solver for the constraint optimization engine,0,DEEP_WORK,0.822
+Build generative art system for user profile avatars,2,CREATIVE,0.812
+Implement distributed quicksort consensus protocol for gateway,0,DEEP_WORK,0.864
+Update inventory of development hardware and software assets,3,ADMINISTRATIVE,0.392
+Prepare slide deck for design review stakeholder presentation,3,ADMINISTRATIVE,0.308
+Implement random forest algorithm for the cache module,0,DEEP_WORK,0.955
+Create onboarding documentation for cache SDK users,4,COMMUNICATION,0.421
+Move helpers.js to the dashboard directory,1,SHALLOW_WORK,0.155
+Review and update team access permissions in Asana,3,ADMINISTRATIVE,0.249
+Refactor the cache codebase to use hexagonal pattern,0,DEEP_WORK,0.854
+Write formal verification proofs for the analytics safety module,0,DEEP_WORK,0.801
+Write incident postmortem for the notification outage last week,4,COMMUNICATION,0.444
+Run linter and fix formatting issues in cache,1,SHALLOW_WORK,0.127
+Fix broken link in deployment documentation,1,SHALLOW_WORK,0.184
+Update inventory of development hardware and software assets,3,ADMINISTRATIVE,0.458
+Analyze genomic dataset and build regression model,0,DEEP_WORK,0.93
+Create illustration set for API reference help center articles,2,CREATIVE,0.764
+Run linter and fix formatting issues in reporting,1,SHALLOW_WORK,0.374
+Create onboarding documentation for billing SDK users,4,COMMUNICATION,0.575
+Bump version number for payment hotfix release,1,SHALLOW_WORK,0.123
+File quarterly SOC2 compliance report,3,ADMINISTRATIVE,0.552
+Fix typo in security documentation page,1,SHALLOW_WORK,0.244
+Design data visualization dashboard for log metrics,2,CREATIVE,0.815
+Create internal FAQ document for offline-first rollout,4,COMMUNICATION,0.513
+Pin lodash to specific version for stability,1,SHALLOW_WORK,0.202
+Create illustration set for architecture help center articles,2,CREATIVE,0.749
+Write compelling copy for homepage landing page,2,CREATIVE,0.639
+Update S3 configuration for staging environment,1,SHALLOW_WORK,0.219
+Record podcast episode discussing Q1 roadmap industry trends,4,COMMUNICATION,0.652
+Refactor the scheduling codebase to use CQRS pattern,0,DEEP_WORK,0.763
+Record demo video showing auto-save new capabilities,4,COMMUNICATION,0.563
+Audit user-profile service uptime logs for last month,3,ADMINISTRATIVE,0.253
+Sketch wireframes for dark mode mobile experience,2,CREATIVE,0.546
+Fix typo in contributing documentation page,1,SHALLOW_WORK,0.26
+Draft email to QA team about team restructuring deadline change,4,COMMUNICATION,0.564
+Schedule architecture meeting with design team,3,ADMINISTRATIVE,0.302
+Design data visualization dashboard for transaction metrics,2,CREATIVE,0.864
+Draft SOW document for auto-save consulting engagement,4,COMMUNICATION,0.402
+Review and update team access permissions in Jira,3,ADMINISTRATIVE,0.31
+Draft proposal for offline-first partnership opportunity,4,COMMUNICATION,0.428
+Migrate scheduling from monolith to microservice architecture,0,DEEP_WORK,0.858
+Add input validation for username field in auth form,1,SHALLOW_WORK,0.193
+Review and update team access permissions in Confluence,3,ADMINISTRATIVE,0.294
+Prepare presentation for stakeholder quarterly review,4,COMMUNICATION,0.489
+Archive completed inventory project files and close tickets,3,ADMINISTRATIVE,0.389
+Draft press release for auto-save product announcement,4,COMMUNICATION,0.516
+Compose original background music for undo-redo meditation mode,2,CREATIVE,0.436
+Document standard operating procedures for code review workflow,3,ADMINISTRATIVE,0.354
+Design and implement caching strategy for scheduling reducing DB load,0,DEEP_WORK,0.75
+Compile weekly status report for QA management review,3,ADMINISTRATIVE,0.316
+Move constants.ts to the analytics directory,1,SHALLOW_WORK,0.218
+Review and categorize incoming support tickets for triage,3,ADMINISTRATIVE,0.293
+Build generative art system for user profile avatars,2,CREATIVE,0.62
+Design award-worthy UI for undo-redo settings panel,2,CREATIVE,0.398
+Add .env.example file with required variables,1,SHALLOW_WORK,0.28
+Write incident postmortem for the billing outage last week,4,COMMUNICATION,0.357
+Update API version number to 1.12.0,1,SHALLOW_WORK,0.25
+Create visual identity for AuraSync product launch,2,CREATIVE,0.419
+Optimize dashboard query performance reducing latency by 50%,0,DEEP_WORK,0.971
+Add logging to analytics endpoint,1,SHALLOW_WORK,0.277
+Update changelog for version 4.0.0 release,1,SHALLOW_WORK,0.224
+Record podcast episode discussing team restructuring industry trends,4,COMMUNICATION,0.457
+Write release notes for dashboard version 2.8.0,4,COMMUNICATION,0.368
+Design and implement caching strategy for notification reducing DB load,0,DEEP_WORK,0.889
+Write compiler pass for Monte Carlo optimization in the build system,0,DEEP_WORK,0.884
+Create motion design for cache state transitions,2,CREATIVE,0.587
+Archive completed search project files and close tickets,3,ADMINISTRATIVE,0.382
+Update project timeline in Linear for Q3 milestones,3,ADMINISTRATIVE,0.253
+Update feature-flag configuration for staging environment,1,SHALLOW_WORK,0.146
+Implement custom binary search solver for the constraint optimization engine,0,DEEP_WORK,0.939
+Prepare slide deck for architecture stakeholder presentation,3,ADMINISTRATIVE,0.442
+Compose apology communication regarding inventory service disruption,4,COMMUNICATION,0.619
+Update project timeline in GitHub for Q2 milestones,3,ADMINISTRATIVE,0.382
+Update project timeline in Notion for Q3 milestones,3,ADMINISTRATIVE,0.55
+Create visual identity for AuraSync product launch,2,CREATIVE,0.655
+Compose apology communication regarding cache service disruption,4,COMMUNICATION,0.378
+Archive completed billing project files and close tickets,3,ADMINISTRATIVE,0.376
+Fix broken link in migration documentation,1,SHALLOW_WORK,0.257
+Update team roster and contact information in HR system,3,ADMINISTRATIVE,0.318
+Write formal verification proofs for the user-profile safety module,0,DEEP_WORK,0.75
+Debug the timeout crash in the dashboard service,0,DEEP_WORK,1.0
+Reconcile March budget allocation across departments,3,ADMINISTRATIVE,0.339
+Record podcast episode discussing security audit industry trends,4,COMMUNICATION,0.344
+Write compelling copy for features landing page,2,CREATIVE,0.644
+Design gamification system for real-time sync user engagement,2,CREATIVE,0.776
+Reply to client feedback about cache performance issues,4,COMMUNICATION,0.554
+Migrate scheduling from monolith to microservice architecture,0,DEEP_WORK,0.924
+Plan and book travel for upcoming 1-on-1 conference,3,ADMINISTRATIVE,0.352
+Prepare talking points for sprint planning customer call,4,COMMUNICATION,0.571
+Update changelog for version 3.2.1 release,1,SHALLOW_WORK,0.192
+Write compelling copy for homepage landing page,2,CREATIVE,0.774
+Write blog post about our undo-redo technical architecture,4,COMMUNICATION,0.607
+Write compelling copy for product tour landing page,2,CREATIVE,0.837
+Optimize billing query performance reducing latency by 50%,0,DEEP_WORK,0.927
+Write compiler pass for BFS optimization in the build system,0,DEEP_WORK,0.813
+Design award-worthy UI for push notification settings panel,2,CREATIVE,0.703
+Write RFP response for notification enterprise contract,4,COMMUNICATION,0.533
+Design immersive collaborative editing experience with parallax scrolling,2,CREATIVE,0.903
+Debug the null pointer crash in the cache service,0,DEEP_WORK,0.737
+Write technical blog comparing quicksort vs alternative approaches,4,COMMUNICATION,0.437
+Brainstorm innovative solutions for mobile performance user pain point,2,CREATIVE,0.517
+Implement distributed simulated annealing consensus protocol for user-profile,0,DEEP_WORK,0.672
+Run linter and fix formatting issues in payment,1,SHALLOW_WORK,0.291
+Design database schema for push notification with normalization,0,DEEP_WORK,0.742
+Build data pipeline for processing genomic in real-time,0,DEEP_WORK,0.854
+Draft SOW document for auto-save consulting engagement,4,COMMUNICATION,0.507
+Audit inventory service uptime logs for last month,3,ADMINISTRATIVE,0.382
+Write blog post about our export technical architecture,4,COMMUNICATION,0.674
+Build generative art system for user profile avatars,2,CREATIVE,0.627
+Design data visualization dashboard for geospatial metrics,2,CREATIVE,0.899
+File quarterly GDPR compliance report,3,ADMINISTRATIVE,0.387
+Analyze NLP corpus dataset and build regression model,0,DEEP_WORK,0.787
+Implement A* algorithm for the analytics module,0,DEEP_WORK,0.939
+Add environment variable for S3 setting,1,SHALLOW_WORK,0.214
+Write technical specification for offline-first architecture,0,DEEP_WORK,0.902
+Update inventory of development hardware and software assets,3,ADMINISTRATIVE,0.293
+Fix broken link in architecture documentation,1,SHALLOW_WORK,0.202
+Create tutorial walkthrough for undo-redo API integration,4,COMMUNICATION,0.508
+Implement OAuth 2.0 authentication flow with token refresh,0,DEEP_WORK,0.812
+Storyboard tutorial video for dark mode walkthrough,2,CREATIVE,0.684
+Design award-worthy UI for auto-save settings panel,2,CREATIVE,0.743
+Write technical specification for version history architecture,0,DEEP_WORK,0.856
+Draft SOW document for real-time sync consulting engagement,4,COMMUNICATION,0.604
+Create internal FAQ document for push notification rollout,4,COMMUNICATION,0.411
+Update README with new real-time sync setup instructions,1,SHALLOW_WORK,0.262
+Analyze transaction dataset and build regression model,0,DEEP_WORK,0.964
+Add .env.example file with required variables,1,SHALLOW_WORK,0.143
+Update changelog for version 2.8.0 release,1,SHALLOW_WORK,0.359
+Add missing type annotations to user-profile module,1,SHALLOW_WORK,0.176
+Review and categorize incoming support tickets for triage,3,ADMINISTRATIVE,0.346
+Design data visualization dashboard for clickstream metrics,2,CREATIVE,0.788
+Migrate billing from monolith to microservice architecture,0,DEEP_WORK,0.932
+Design and implement caching strategy for auth reducing DB load,0,DEEP_WORK,0.85
+Design immersive push notification experience with parallax scrolling,2,CREATIVE,0.761
+Bump version number for reporting hotfix release,1,SHALLOW_WORK,0.173
+Update project timeline in Notion for Q4 milestones,3,ADMINISTRATIVE,0.468
+Create motion design for dashboard state transitions,2,CREATIVE,0.655
+Add .env.example file with required variables,1,SHALLOW_WORK,0.335
+Write blog post about our auto-save technical architecture,4,COMMUNICATION,0.316
+Pin moment to specific version for stability,1,SHALLOW_WORK,0.197
+Write technical specification for multi-tenant architecture,0,DEEP_WORK,0.819
+Update README with new undo-redo setup instructions,1,SHALLOW_WORK,0.292
+Review and categorize incoming support tickets for triage,3,ADMINISTRATIVE,0.339
+Create typography system for AuraSync design language,2,CREATIVE,0.677
+Design immersive auto-save experience with parallax scrolling,2,CREATIVE,0.85
+Move utils.py to the gateway directory,1,SHALLOW_WORK,0.259
+Update S3 configuration for staging environment,1,SHALLOW_WORK,0.032
+File quarterly SOC2 compliance report,3,ADMINISTRATIVE,0.364
+Implement distributed backpropagation consensus protocol for user-profile,0,DEEP_WORK,0.715
+Add logging to notification endpoint,1,SHALLOW_WORK,0.231
+Design and implement caching strategy for messaging reducing DB load,0,DEEP_WORK,0.846
+Add missing type annotations to user-profile module,1,SHALLOW_WORK,0.343
+Audit inventory service uptime logs for last month,3,ADMINISTRATIVE,0.356
+Create visual identity for Zenith product launch,2,CREATIVE,0.848
+Sketch wireframes for export mobile experience,2,CREATIVE,0.658
+Design interactive cache visualization with animations,2,CREATIVE,0.53
+Prepare presentation for all-hands quarterly review,4,COMMUNICATION,0.451
+Update project timeline in Jira for Q3 milestones,3,ADMINISTRATIVE,0.383
+Create illustration set for architecture help center articles,2,CREATIVE,0.627
+Write incident postmortem for the dashboard outage last week,4,COMMUNICATION,0.51
+Add environment variable for S3 setting,1,SHALLOW_WORK,0.225
+Create responsive illustration that adapts to notification viewport,2,CREATIVE,0.662
+Fix broken link in deployment documentation,1,SHALLOW_WORK,0.298
+Create machine learning feature extraction for transaction analysis,0,DEEP_WORK,0.738
+Prepare slide deck for design review stakeholder presentation,3,ADMINISTRATIVE,0.506
+Design immersive collaborative editing experience with parallax scrolling,2,CREATIVE,0.612
+Implement custom Dijkstra solver for the constraint optimization engine,0,DEEP_WORK,1.0
+Update migration JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.276
+Pin lodash to specific version for stability,1,SHALLOW_WORK,0.134
+File quarterly SOC2 compliance report,3,ADMINISTRATIVE,0.371
+Create tutorial walkthrough for offline-first API integration,4,COMMUNICATION,0.442
+Review and update team access permissions in Jira,3,ADMINISTRATIVE,0.295
+Prepare presentation for sprint planning quarterly review,4,COMMUNICATION,0.331
+Add missing type annotations to scheduling module,1,SHALLOW_WORK,0.301
+Design interactive cache visualization with animations,2,CREATIVE,0.747
+Compile weekly status report for product management review,3,ADMINISTRATIVE,0.34
+Reconcile November budget allocation across departments,3,ADMINISTRATIVE,0.587
+Prototype new dark mode experience using Figma,2,CREATIVE,0.684
+Analyze genomic dataset and build regression model,0,DEEP_WORK,0.791
+Build generative art system for user profile avatars,2,CREATIVE,0.595
+Compile weekly status report for design management review,3,ADMINISTRATIVE,0.316
+Create tutorial walkthrough for version history API integration,4,COMMUNICATION,0.519
+Schedule retrospective meeting with engineering team,3,ADMINISTRATIVE,0.398
+Write technical blog comparing quicksort vs alternative approaches,4,COMMUNICATION,0.502
+Update feature-flag configuration for staging environment,1,SHALLOW_WORK,0.08
+Add default value for phone_number in gateway model,1,SHALLOW_WORK,0.058
+Document standard operating procedures for release workflow,3,ADMINISTRATIVE,0.366
+Record demo video showing auto-save new capabilities,4,COMMUNICATION,0.598
+Archive completed payment project files and close tickets,3,ADMINISTRATIVE,0.434
+Implement custom k-means solver for the constraint optimization engine,0,DEEP_WORK,0.836
+Write incident postmortem for the billing outage last week,4,COMMUNICATION,0.707
+Plan and book travel for upcoming stakeholder conference,3,ADMINISTRATIVE,0.284
+Archive completed notification project files and close tickets,3,ADMINISTRATIVE,0.428
+Add default value for email in scheduling model,1,SHALLOW_WORK,0.199
+Debug the stack overflow crash in the cache service,0,DEEP_WORK,0.823
+Create machine learning feature extraction for transaction analysis,0,DEEP_WORK,0.853
+Clean up unused imports in analytics files,1,SHALLOW_WORK,0.45
+Brainstorm innovative solutions for retention user pain point,2,CREATIVE,0.67
+Implement distributed backpropagation consensus protocol for user-profile,0,DEEP_WORK,0.817
+Organize team standup notes from this week,3,ADMINISTRATIVE,0.412
+Add .env.example file with required variables,1,SHALLOW_WORK,0.625
+Move constants.ts to the auth directory,1,SHALLOW_WORK,0.147
+Review and approve 12 pending pull requests,3,ADMINISTRATIVE,0.242
+Organize team standup notes from this week,3,ADMINISTRATIVE,0.48
+Add default value for address in gateway model,1,SHALLOW_WORK,0.262
+File quarterly GDPR compliance report,3,ADMINISTRATIVE,0.225
+Write RFP response for dashboard enterprise contract,4,COMMUNICATION,0.353
+Archive completed analytics project files and close tickets,3,ADMINISTRATIVE,0.351
+Compose newsletter update about infrastructure migration progress this quarter,4,COMMUNICATION,0.505
+Draft SOW document for offline-first consulting engagement,4,COMMUNICATION,0.497
+Draft email to QA team about infrastructure migration deadline change,4,COMMUNICATION,0.548
+Create visual identity for FlowState product launch,2,CREATIVE,0.831
+Add default value for date_of_birth in inventory model,1,SHALLOW_WORK,0.156
+Build data pipeline for processing log in real-time,0,DEEP_WORK,0.936
+Update team roster and contact information in HR system,3,ADMINISTRATIVE,0.312
+Write blog post about our undo-redo technical architecture,4,COMMUNICATION,0.738
+Design and implement caching strategy for messaging reducing DB load,0,DEEP_WORK,0.849
+Analyze transaction dataset and build regression model,0,DEEP_WORK,0.856
+Update API reference JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.231
+Refactor the scheduling codebase to use singleton pattern,0,DEEP_WORK,0.826
+Optimize search query performance reducing latency by 50%,0,DEEP_WORK,0.94
+Prepare presentation for design review quarterly review,4,COMMUNICATION,0.442
+Rename userData variable to userProfile across codebase,1,SHALLOW_WORK,0.418
+Compose original background music for collaborative editing meditation mode,2,CREATIVE,0.636
+Clean up unused imports in billing files,1,SHALLOW_WORK,0.197
+Compile weekly status report for product management review,3,ADMINISTRATIVE,0.404
+Create illustration set for contributing help center articles,2,CREATIVE,0.548
+Create internal FAQ document for offline-first rollout,4,COMMUNICATION,0.444
+Design award-worthy UI for multi-tenant settings panel,2,CREATIVE,0.621
+Draft press release for export product announcement,4,COMMUNICATION,0.738
+Implement custom binary search solver for the constraint optimization engine,0,DEEP_WORK,0.877
+Prepare talking points for 1-on-1 customer call,4,COMMUNICATION,0.413
+Move helpers.js to the reporting directory,1,SHALLOW_WORK,0.227
+Create illustration set for security help center articles,2,CREATIVE,0.662
+Bump version number for payment hotfix release,1,SHALLOW_WORK,0.201
+Implement distributed gradient descent consensus protocol for gateway,0,DEEP_WORK,0.825
+Pin moment to specific version for stability,1,SHALLOW_WORK,0.137
+Add .env.example file with required variables,1,SHALLOW_WORK,0.224
+Prepare slide deck for all-hands stakeholder presentation,3,ADMINISTRATIVE,0.33
+Prepare presentation for stakeholder quarterly review,4,COMMUNICATION,0.263
+Fix typo in deployment documentation page,1,SHALLOW_WORK,0.448
+Update README with new offline-first setup instructions,1,SHALLOW_WORK,0.249
+Update changelog for version 5.1.0 release,1,SHALLOW_WORK,0.451
+Update inventory dependency versions in package.json,1,SHALLOW_WORK,0.288
+Implement custom binary search solver for the constraint optimization engine,0,DEEP_WORK,0.858
+Create onboarding checklist for new designer hire,3,ADMINISTRATIVE,0.358
+Update project timeline in Confluence for Q3 milestones,3,ADMINISTRATIVE,0.391
+Write blog post about our undo-redo technical architecture,4,COMMUNICATION,0.597
+Write compelling copy for product tour landing page,2,CREATIVE,0.55
+Update architecture JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.219
+Profile and fix memory leak in auth under high concurrency,0,DEEP_WORK,0.856
+Write blog post about our undo-redo technical architecture,4,COMMUNICATION,0.503
+Implement mTLS authentication flow with token refresh,0,DEEP_WORK,0.797
+Prepare talking points for retrospective customer call,4,COMMUNICATION,0.326
+Implement Monte Carlo algorithm for the notification module,0,DEEP_WORK,0.943
+Document standard operating procedures for code review workflow,3,ADMINISTRATIVE,0.26
+Implement mTLS authentication flow with token refresh,0,DEEP_WORK,0.891
+Draft email to marketing team about security audit deadline change,4,COMMUNICATION,0.597
+Reply to client feedback about search performance issues,4,COMMUNICATION,0.705
+Update inventory of development hardware and software assets,3,ADMINISTRATIVE,0.405
+Review and categorize incoming support tickets for triage,3,ADMINISTRATIVE,0.377
+Build generative art system for user profile avatars,2,CREATIVE,0.697
+Refactor the user-profile codebase to use CQRS pattern,0,DEEP_WORK,0.732
+Create visual identity for NovaTech product launch,2,CREATIVE,1.0
+Implement genetic algorithm for the reporting module,0,DEEP_WORK,0.952
+Record podcast episode discussing performance optimization industry trends,4,COMMUNICATION,0.462
+Create knowledge base article for undo-redo troubleshooting,4,COMMUNICATION,0.458
+Compose original background music for undo-redo meditation mode,2,CREATIVE,0.934
+Compile weekly status report for DevOps management review,3,ADMINISTRATIVE,0.528
+Design micro-interactions for cache hover and focus states,2,CREATIVE,0.615
+Add environment variable for redis setting,1,SHALLOW_WORK,0.489
+Write unit tests for the auth engine covering edge cases,0,DEEP_WORK,0.751
+Clean up unused imports in user-profile files,1,SHALLOW_WORK,0.295
+Update README with new export setup instructions,1,SHALLOW_WORK,0.19
+Create responsive illustration that adapts to inventory viewport,2,CREATIVE,0.605
+Compose original background music for version history meditation mode,2,CREATIVE,0.764
+Prepare talking points for stakeholder customer call,4,COMMUNICATION,0.637
+Create brand storytelling narrative for FlowState campaign,2,CREATIVE,0.78
+Create internal FAQ document for auto-save rollout,4,COMMUNICATION,0.534
+Record podcast episode discussing infrastructure migration industry trends,4,COMMUNICATION,0.486
+Create onboarding documentation for inventory SDK users,4,COMMUNICATION,0.269
+Create motion design for billing state transitions,2,CREATIVE,0.641
+Design immersive real-time sync experience with parallax scrolling,2,CREATIVE,0.655
+Prepare slide deck for sprint planning stakeholder presentation,3,ADMINISTRATIVE,0.314
+Write formal verification proofs for the billing safety module,0,DEEP_WORK,0.8
+Update API version number to 5.1.0,1,SHALLOW_WORK,0.274
+Debug the OOM crash in the notification service,0,DEEP_WORK,0.808
+Compose newsletter update about security audit progress this quarter,4,COMMUNICATION,0.416
+Pin webpack to specific version for stability,1,SHALLOW_WORK,0.437
+Move helpers.js to the inventory directory,1,SHALLOW_WORK,0.009
+Run linter and fix formatting issues in notification,1,SHALLOW_WORK,0.446
+Optimize messaging query performance reducing latency by 50%,0,DEEP_WORK,0.925
+Profile and fix memory leak in payment under high concurrency,0,DEEP_WORK,0.913
+Design new onboarding flow for first-time analyst users,2,CREATIVE,0.587
+Compile weekly status report for marketing management review,3,ADMINISTRATIVE,0.231
+Clean up unused imports in gateway files,1,SHALLOW_WORK,0.487
+Create onboarding documentation for auth SDK users,4,COMMUNICATION,0.481
+Storyboard tutorial video for two-factor auth walkthrough,2,CREATIVE,0.609
+Coordinate vendor contract renewal for Linear licenses,3,ADMINISTRATIVE,0.239
+Clean up unused imports in billing files,1,SHALLOW_WORK,0.202
+Add default value for email in auth model,1,SHALLOW_WORK,0.234
+Create onboarding documentation for billing SDK users,4,COMMUNICATION,0.38
+Clean up unused imports in dashboard files,1,SHALLOW_WORK,0.12
+Prepare presentation for stakeholder quarterly review,4,COMMUNICATION,0.665
+Update project timeline in GitHub for Q4 milestones,3,ADMINISTRATIVE,0.303
+Draft email to design team about security audit deadline change,4,COMMUNICATION,0.645
+Write RFP response for dashboard enterprise contract,4,COMMUNICATION,0.756
+Audit auth service uptime logs for last month,3,ADMINISTRATIVE,0.314
+Design award-worthy UI for collaborative editing settings panel,2,CREATIVE,0.93
+Write release notes for user-profile version 4.0.0,4,COMMUNICATION,0.557
+Write RFP response for billing enterprise contract,4,COMMUNICATION,0.468
+Update security JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.36
+Create typography system for Zenith design language,2,CREATIVE,0.535
+Organize team standup notes from this week,3,ADMINISTRATIVE,0.412
+Audit inventory service uptime logs for last month,3,ADMINISTRATIVE,0.292
+Write compiler pass for simulated annealing optimization in the build system,0,DEEP_WORK,0.864
+Write technical specification for push notification architecture,0,DEEP_WORK,0.832
+Brainstorm innovative solutions for mobile performance user pain point,2,CREATIVE,0.862
+Compile weekly status report for QA management review,3,ADMINISTRATIVE,0.237
+Create internal FAQ document for dark mode rollout,4,COMMUNICATION,0.427
+Create brand storytelling narrative for NovaTech campaign,2,CREATIVE,0.761
+Create visual identity for Luminary product launch,2,CREATIVE,0.791
+Add environment variable for CDN setting,1,SHALLOW_WORK,0.392
+Implement custom binary search solver for the constraint optimization engine,0,DEEP_WORK,0.917
+Coordinate vendor contract renewal for Asana licenses,3,ADMINISTRATIVE,0.387
+Create internal FAQ document for two-factor auth rollout,4,COMMUNICATION,0.45
+Optimize cache query performance reducing latency by 50%,0,DEEP_WORK,0.83
+Draft SOW document for two-factor auth consulting engagement,4,COMMUNICATION,0.655
+Run linter and fix formatting issues in scheduling,1,SHALLOW_WORK,0.166
+Implement SAML authentication flow with token refresh,0,DEEP_WORK,0.808
+Prepare slide deck for retrospective stakeholder presentation,3,ADMINISTRATIVE,0.473
+Design interactive analytics visualization with animations,2,CREATIVE,0.63
+Write unit tests for the search engine covering edge cases,0,DEEP_WORK,0.762
+File quarterly GDPR compliance report,3,ADMINISTRATIVE,0.23
+Draft proposal for push notification partnership opportunity,4,COMMUNICATION,0.634
+Write technical blog comparing dynamic programming vs alternative approaches,4,COMMUNICATION,0.632
+Record demo video showing undo-redo new capabilities,4,COMMUNICATION,0.481
+Reconcile November budget allocation across departments,3,ADMINISTRATIVE,0.272
+Refactor the user-profile codebase to use strategy pattern,0,DEEP_WORK,0.804
+Design micro-interactions for analytics hover and focus states,2,CREATIVE,0.616
+Create tutorial walkthrough for multi-tenant API integration,4,COMMUNICATION,0.357
+Design interactive payment visualization with animations,2,CREATIVE,0.613
+Design award-worthy UI for undo-redo settings panel,2,CREATIVE,0.714
+Optimize dashboard query performance reducing latency by 50%,0,DEEP_WORK,0.858
+Create machine learning feature extraction for log analysis,0,DEEP_WORK,0.809
+Document standard operating procedures for release workflow,3,ADMINISTRATIVE,0.391
+Create tutorial walkthrough for two-factor auth API integration,4,COMMUNICATION,0.353
+Design fault-tolerant gateway with automatic failover and recovery,0,DEEP_WORK,0.86
+Coordinate vendor contract renewal for Notion licenses,3,ADMINISTRATIVE,0.26
+Rename processItem variable to userProfile across codebase,1,SHALLOW_WORK,0.3
+Sketch wireframes for version history mobile experience,2,CREATIVE,0.834
+Design interactive cache visualization with animations,2,CREATIVE,0.685
+Sketch wireframes for dark mode mobile experience,2,CREATIVE,0.69
+Design interactive gateway visualization with animations,2,CREATIVE,0.72
+Write technical blog comparing random forest vs alternative approaches,4,COMMUNICATION,0.497
+Update CI pipeline to use Node 3.2.1,1,SHALLOW_WORK,0.181
+Update logging configuration for staging environment,1,SHALLOW_WORK,0.141
+Write formal verification proofs for the reporting safety module,0,DEEP_WORK,1.0
+Rename tempVal variable to onEvent across codebase,1,SHALLOW_WORK,0.427
+Clean up unused imports in payment files,1,SHALLOW_WORK,0.245
+Draft proposal for multi-tenant partnership opportunity,4,COMMUNICATION,0.579
+Design immersive auto-save experience with parallax scrolling,2,CREATIVE,0.916
+Prepare presentation for all-hands quarterly review,4,COMMUNICATION,0.516
+Pin lodash to specific version for stability,1,SHALLOW_WORK,0.119
+Design data visualization dashboard for transaction metrics,2,CREATIVE,0.787
+Design micro-interactions for inventory hover and focus states,2,CREATIVE,0.795
+Write release notes for gateway version 4.0.0,4,COMMUNICATION,0.572
+Rename userData variable to transformItem across codebase,1,SHALLOW_WORK,0.194
+Design database schema for auto-save with normalization,0,DEEP_WORK,0.686
+Debug the race condition crash in the billing service,0,DEEP_WORK,0.757
+Audit cache service uptime logs for last month,3,ADMINISTRATIVE,0.416
+Record demo video showing collaborative editing new capabilities,4,COMMUNICATION,0.582
+Create knowledge base article for export troubleshooting,4,COMMUNICATION,0.372
+Write formal verification proofs for the user-profile safety module,0,DEEP_WORK,0.87
+Build generative art system for user profile avatars,2,CREATIVE,0.829
+Design immersive push notification experience with parallax scrolling,2,CREATIVE,0.543
+Prepare presentation for all-hands quarterly review,4,COMMUNICATION,0.45
+Update README with new dark mode setup instructions,1,SHALLOW_WORK,0.385
+Create motion design for dashboard state transitions,2,CREATIVE,0.615
+Design data visualization dashboard for clickstream metrics,2,CREATIVE,0.764
+Migrate notification from monolith to microservice architecture,0,DEEP_WORK,0.805
+File quarterly financial compliance report,3,ADMINISTRATIVE,0.287
+Write blog post about our auto-save technical architecture,4,COMMUNICATION,0.469
+Brainstorm innovative solutions for onboarding drop-off user pain point,2,CREATIVE,0.575
+Fix typo in architecture documentation page,1,SHALLOW_WORK,0.252
+Update project timeline in Asana for Q2 milestones,3,ADMINISTRATIVE,0.321
+Build generative art system for user profile avatars,2,CREATIVE,0.793
+Pin moment to specific version for stability,1,SHALLOW_WORK,0.224
+Create knowledge base article for collaborative editing troubleshooting,4,COMMUNICATION,0.557
+Write technical blog comparing dynamic programming vs alternative approaches,4,COMMUNICATION,0.657
+Profile and fix memory leak in search under high concurrency,0,DEEP_WORK,0.847
+Implement distributed simulated annealing consensus protocol for reporting,0,DEEP_WORK,0.934
+Run linter and fix formatting issues in messaging,1,SHALLOW_WORK,0.204
+Design gamification system for undo-redo user engagement,2,CREATIVE,0.731
+Design award-worthy UI for real-time sync settings panel,2,CREATIVE,0.587
+Design award-worthy UI for multi-tenant settings panel,2,CREATIVE,0.574
+Run linter and fix formatting issues in auth,1,SHALLOW_WORK,0.232
+Build generative art system for user profile avatars,2,CREATIVE,0.886
+Design and implement caching strategy for search reducing DB load,0,DEEP_WORK,0.783
+Create motion design for payment state transitions,2,CREATIVE,0.764
+Update README with new undo-redo setup instructions,1,SHALLOW_WORK,0.009
+Design data visualization dashboard for transaction metrics,2,CREATIVE,0.597
+Create responsive illustration that adapts to user-profile viewport,2,CREATIVE,0.531
+Refactor the payment codebase to use singleton pattern,0,DEEP_WORK,0.89
+Design and implement caching strategy for messaging reducing DB load,0,DEEP_WORK,0.822
+Update analytics dependency versions in package.json,1,SHALLOW_WORK,0.202
+Build real-time NLP corpus processing pipeline with exactly-once semantics,0,DEEP_WORK,0.873
+Refactor the messaging codebase to use decorator pattern,0,DEEP_WORK,0.978
+Design gamification system for export user engagement,2,CREATIVE,0.621
+Debug the segfault crash in the reporting service,0,DEEP_WORK,1.0
+Create machine learning feature extraction for log analysis,0,DEEP_WORK,0.768
+Debug the timeout crash in the messaging service,0,DEEP_WORK,0.885
+Run linter and fix formatting issues in billing,1,SHALLOW_WORK,0.016
+Update inventory of development hardware and software assets,3,ADMINISTRATIVE,0.355
+Create onboarding checklist for new frontend engineer hire,3,ADMINISTRATIVE,0.347
+Review and categorize incoming support tickets for triage,3,ADMINISTRATIVE,0.531
+Update getting started JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.344
+Draft SOW document for collaborative editing consulting engagement,4,COMMUNICATION,0.36
+Design gamification system for multi-tenant user engagement,2,CREATIVE,0.655
+Prepare presentation for sprint planning quarterly review,4,COMMUNICATION,0.491
+File quarterly security compliance report,3,ADMINISTRATIVE,0.4
+Update API version number to 1.12.0,1,SHALLOW_WORK,0.087
+Write blog post about our offline-first technical architecture,4,COMMUNICATION,0.479
+Write compiler pass for quicksort optimization in the build system,0,DEEP_WORK,0.97
+File quarterly financial compliance report,3,ADMINISTRATIVE,0.331
+Design award-worthy UI for export settings panel,2,CREATIVE,0.537
+Audit user-profile service uptime logs for last month,3,ADMINISTRATIVE,0.323
+Design interactive cache visualization with animations,2,CREATIVE,0.593
+Process expense reports for October purchases,3,ADMINISTRATIVE,0.376
+Compose newsletter update about product launch progress this quarter,4,COMMUNICATION,0.388
+Draft SOW document for export consulting engagement,4,COMMUNICATION,0.439
+Add input validation for username field in billing form,1,SHALLOW_WORK,0.405
+Create internal FAQ document for version history rollout,4,COMMUNICATION,0.627
+Schedule architecture meeting with product team,3,ADMINISTRATIVE,0.326
+Audit reporting service uptime logs for last month,3,ADMINISTRATIVE,0.55
+Sketch wireframes for undo-redo mobile experience,2,CREATIVE,0.899
+Write formal verification proofs for the billing safety module,0,DEEP_WORK,0.813
+Debug the stack overflow crash in the gateway service,0,DEEP_WORK,0.903
+Prototype new dark mode experience using Figma,2,CREATIVE,0.702
+Write incident postmortem for the user-profile outage last week,4,COMMUNICATION,0.595
+Design immersive dark mode experience with parallax scrolling,2,CREATIVE,0.571
+Reply to client feedback about messaging performance issues,4,COMMUNICATION,0.576
+Review and approve 8 pending pull requests,3,ADMINISTRATIVE,0.233
+Optimize scheduling query performance reducing latency by 50%,0,DEEP_WORK,0.691
+Analyze NLP corpus dataset and build regression model,0,DEEP_WORK,0.905
+Create brand storytelling narrative for NovaTech campaign,2,CREATIVE,0.577
+Archive completed messaging project files and close tickets,3,ADMINISTRATIVE,0.218
+Add logging to inventory endpoint,1,SHALLOW_WORK,0.163
+Implement A* algorithm for the scheduling module,0,DEEP_WORK,0.791
+Add .env.example file with required variables,1,SHALLOW_WORK,0.261
+Add environment variable for logging setting,1,SHALLOW_WORK,0.145
+Write blog post about our real-time sync technical architecture,4,COMMUNICATION,0.759
+Write compelling copy for homepage landing page,2,CREATIVE,0.824
+Draft SOW document for two-factor auth consulting engagement,4,COMMUNICATION,0.433
+Reply to client feedback about cache performance issues,4,COMMUNICATION,0.531
+Create onboarding checklist for new backend engineer hire,3,ADMINISTRATIVE,0.382
+Brainstorm innovative solutions for onboarding drop-off user pain point,2,CREATIVE,0.67
+Build generative art system for user profile avatars,2,CREATIVE,0.582
+Profile and fix memory leak in scheduling under high concurrency,0,DEEP_WORK,0.856
+Refactor the auth codebase to use event-driven pattern,0,DEEP_WORK,0.953
+Prototype new export experience using Figma,2,CREATIVE,0.499
+Implement mTLS authentication flow with token refresh,0,DEEP_WORK,0.855
+Write compiler pass for binary search optimization in the build system,0,DEEP_WORK,0.955
+Add environment variable for CDN setting,1,SHALLOW_WORK,0.494
+Optimize scheduling query performance reducing latency by 50%,0,DEEP_WORK,0.796
+Implement custom backpropagation solver for the constraint optimization engine,0,DEEP_WORK,0.927
+Create brand storytelling narrative for Zenith campaign,2,CREATIVE,0.659
+Create responsive illustration that adapts to reporting viewport,2,CREATIVE,0.703
+Write technical specification for undo-redo architecture,0,DEEP_WORK,0.868
+Design and implement caching strategy for user-profile reducing DB load,0,DEEP_WORK,0.827
+Write incident postmortem for the billing outage last week,4,COMMUNICATION,0.408
+Reconcile November budget allocation across departments,3,ADMINISTRATIVE,0.214
+File quarterly financial compliance report,3,ADMINISTRATIVE,0.272
+Coordinate vendor contract renewal for Notion licenses,3,ADMINISTRATIVE,0.26
+Review and categorize incoming support tickets for triage,3,ADMINISTRATIVE,0.18
+Add .env.example file with required variables,1,SHALLOW_WORK,0.356
+Update migration JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.391
+Add environment variable for logging setting,1,SHALLOW_WORK,0.382
+Review and update team access permissions in Notion,3,ADMINISTRATIVE,0.464
+Review and update team access permissions in Confluence,3,ADMINISTRATIVE,0.454
+Write technical specification for push notification architecture,0,DEEP_WORK,0.917
+Prepare talking points for stakeholder customer call,4,COMMUNICATION,0.492
+Draft email to QA team about Q1 roadmap deadline change,4,COMMUNICATION,0.424
+Create responsive illustration that adapts to inventory viewport,2,CREATIVE,0.707
+Design fault-tolerant billing with automatic failover and recovery,0,DEEP_WORK,0.881
+Clean up unused imports in inventory files,1,SHALLOW_WORK,0.133
+Design data visualization dashboard for transaction metrics,2,CREATIVE,0.458
+Archive completed messaging project files and close tickets,3,ADMINISTRATIVE,0.263
+Create brand storytelling narrative for FlowState campaign,2,CREATIVE,0.687
+Implement mTLS authentication flow with token refresh,0,DEEP_WORK,0.953
+Migrate messaging from monolith to microservice architecture,0,DEEP_WORK,0.822
+Update changelog for version 3.2.1 release,1,SHALLOW_WORK,0.111
+Draft press release for collaborative editing product announcement,4,COMMUNICATION,0.506
+Write technical specification for dark mode architecture,0,DEEP_WORK,0.856
+Storyboard tutorial video for real-time sync walkthrough,2,CREATIVE,0.511
+Record podcast episode discussing product launch industry trends,4,COMMUNICATION,0.495
+Move utils.py to the inventory directory,1,SHALLOW_WORK,0.075
+Audit notification service uptime logs for last month,3,ADMINISTRATIVE,0.329
+Compose apology communication regarding search service disruption,4,COMMUNICATION,0.388
+Design and implement caching strategy for scheduling reducing DB load,0,DEEP_WORK,0.776
+Review and approve 20 pending pull requests,3,ADMINISTRATIVE,0.092
+Record podcast episode discussing team restructuring industry trends,4,COMMUNICATION,0.41
+Migrate auth from monolith to microservice architecture,0,DEEP_WORK,0.762
+Compile weekly status report for product management review,3,ADMINISTRATIVE,0.386
+Update getting started JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.513
+Implement JWT authentication flow with token refresh,0,DEEP_WORK,0.816
+Process expense reports for November purchases,3,ADMINISTRATIVE,0.373
+Clean up unused imports in analytics files,1,SHALLOW_WORK,0.358
+Create responsive illustration that adapts to scheduling viewport,2,CREATIVE,0.589
+Update API version number to 3.2.1,1,SHALLOW_WORK,0.435
+Compose original background music for real-time sync meditation mode,2,CREATIVE,0.648
+Fix broken link in architecture documentation,1,SHALLOW_WORK,0.23
+Move utils.py to the scheduling directory,1,SHALLOW_WORK,0.176
+Design micro-interactions for search hover and focus states,2,CREATIVE,0.674
+Draft SOW document for export consulting engagement,4,COMMUNICATION,0.569
+Compose original background music for multi-tenant meditation mode,2,CREATIVE,0.647
+Fix broken link in architecture documentation,1,SHALLOW_WORK,0.293
+Create illustration set for migration help center articles,2,CREATIVE,0.754
+Design interactive user-profile visualization with animations,2,CREATIVE,0.805
+Reply to client feedback about billing performance issues,4,COMMUNICATION,0.628
+Profile and fix memory leak in analytics under high concurrency,0,DEEP_WORK,0.978
+Write RFP response for scheduling enterprise contract,4,COMMUNICATION,0.602
+Implement JWT authentication flow with token refresh,0,DEEP_WORK,0.853
+Design interactive search visualization with animations,2,CREATIVE,0.779
+Implement custom genetic solver for the constraint optimization engine,0,DEEP_WORK,0.852
+Create internal FAQ document for multi-tenant rollout,4,COMMUNICATION,0.5
+Compose newsletter update about Q1 roadmap progress this quarter,4,COMMUNICATION,0.662
+Create knowledge base article for two-factor auth troubleshooting,4,COMMUNICATION,0.424
+Prepare slide deck for retrospective stakeholder presentation,3,ADMINISTRATIVE,0.448
+Design micro-interactions for billing hover and focus states,2,CREATIVE,0.722
+Update README with new export setup instructions,1,SHALLOW_WORK,0.143
+Update inventory of development hardware and software assets,3,ADMINISTRATIVE,0.293
+Create brand storytelling narrative for FlowState campaign,2,CREATIVE,0.646
+Create onboarding documentation for messaging SDK users,4,COMMUNICATION,0.384
+Add environment variable for redis setting,1,SHALLOW_WORK,0.21
+Plan and book travel for upcoming architecture conference,3,ADMINISTRATIVE,0.441
+Update S3 configuration for staging environment,1,SHALLOW_WORK,0.259
+Implement OAuth 2.0 authentication flow with token refresh,0,DEEP_WORK,1.0
+Compose original background music for auto-save meditation mode,2,CREATIVE,0.84
+Profile and fix memory leak in notification under high concurrency,0,DEEP_WORK,0.875
+Create visual identity for NovaTech product launch,2,CREATIVE,0.537
+Review and update team access permissions in Linear,3,ADMINISTRATIVE,0.475
+Refactor the cache codebase to use singleton pattern,0,DEEP_WORK,0.896
+Build generative art system for user profile avatars,2,CREATIVE,0.572
+Write RFP response for payment enterprise contract,4,COMMUNICATION,0.529
+Design gamification system for collaborative editing user engagement,2,CREATIVE,0.49
+Reply to client feedback about search performance issues,4,COMMUNICATION,0.454
+Storyboard tutorial video for real-time sync walkthrough,2,CREATIVE,0.693
+Draft proposal for real-time sync partnership opportunity,4,COMMUNICATION,0.56
+Write compelling copy for pricing landing page,2,CREATIVE,0.857
+Archive completed messaging project files and close tickets,3,ADMINISTRATIVE,0.436
+Compose original background music for export meditation mode,2,CREATIVE,0.817
+Create brand storytelling narrative for NovaTech campaign,2,CREATIVE,0.68
+Run linter and fix formatting issues in analytics,1,SHALLOW_WORK,0.338
+Design database schema for collaborative editing with normalization,0,DEEP_WORK,0.988
+Prepare presentation for 1-on-1 quarterly review,4,COMMUNICATION,0.481
+Update API version number to 2.8.0,1,SHALLOW_WORK,0.132
+Analyze genomic dataset and build regression model,0,DEEP_WORK,0.754
+Create tutorial walkthrough for push notification API integration,4,COMMUNICATION,0.537
+Write compelling copy for features landing page,2,CREATIVE,0.849
+Archive completed dashboard project files and close tickets,3,ADMINISTRATIVE,0.133
+Update reporting dependency versions in package.json,1,SHALLOW_WORK,0.312
+Design gamification system for auto-save user engagement,2,CREATIVE,0.592
+Draft SOW document for real-time sync consulting engagement,4,COMMUNICATION,0.31
+Build data pipeline for processing log in real-time,0,DEEP_WORK,0.839
+Rename handleEvent variable to userProfile across codebase,1,SHALLOW_WORK,0.432
+Fix typo in migration documentation page,1,SHALLOW_WORK,0.045
+Draft proposal for push notification partnership opportunity,4,COMMUNICATION,0.408
+Archive completed cache project files and close tickets,3,ADMINISTRATIVE,0.206
+Write blog post about our version history technical architecture,4,COMMUNICATION,0.693
+Update CI pipeline to use Node 1.12.0,1,SHALLOW_WORK,0.411
+Design new onboarding flow for first-time student users,2,CREATIVE,0.726
+Move helpers.js to the auth directory,1,SHALLOW_WORK,0.184
+Migrate gateway from monolith to microservice architecture,0,DEEP_WORK,0.853
+Write compelling copy for features landing page,2,CREATIVE,0.812
+Implement custom dynamic programming solver for the constraint optimization engine,0,DEEP_WORK,0.87
+Refactor the analytics codebase to use hexagonal pattern,0,DEEP_WORK,0.793
+Fix typo in getting started documentation page,1,SHALLOW_WORK,0.313
+Prepare presentation for design review quarterly review,4,COMMUNICATION,0.73
+Move utils.py to the notification directory,1,SHALLOW_WORK,0.197
+Create illustration set for getting started help center articles,2,CREATIVE,0.699
+Schedule retrospective meeting with product team,3,ADMINISTRATIVE,0.235
+Write RFP response for inventory enterprise contract,4,COMMUNICATION,0.601
+Design data visualization dashboard for clickstream metrics,2,CREATIVE,0.574
+Update API version number to 4.0.0,1,SHALLOW_WORK,0.325
+Prepare slide deck for stakeholder stakeholder presentation,3,ADMINISTRATIVE,0.481
+Move types.d.ts to the billing directory,1,SHALLOW_WORK,0.045
+Prototype new undo-redo experience using Figma,2,CREATIVE,0.764
+Pin lodash to specific version for stability,1,SHALLOW_WORK,0.215
+Add input validation for email field in analytics form,1,SHALLOW_WORK,0.214
+Add missing type annotations to notification module,1,SHALLOW_WORK,0.22
+Write incident postmortem for the reporting outage last week,4,COMMUNICATION,0.459
+Create onboarding documentation for auth SDK users,4,COMMUNICATION,0.335
+Schedule design review meeting with marketing team,3,ADMINISTRATIVE,0.145
+Create internal FAQ document for push notification rollout,4,COMMUNICATION,0.603
+Update cache dependency versions in package.json,1,SHALLOW_WORK,0.165
+Add logging to inventory endpoint,1,SHALLOW_WORK,0.265
+Update changelog for version 3.2.1 release,1,SHALLOW_WORK,0.145
+Build generative art system for user profile avatars,2,CREATIVE,0.818
+Compose newsletter update about performance optimization progress this quarter,4,COMMUNICATION,0.571
+Design interactive gateway visualization with animations,2,CREATIVE,0.561
+Write blog post about our collaborative editing technical architecture,4,COMMUNICATION,0.631
+Design immersive multi-tenant experience with parallax scrolling,2,CREATIVE,0.726
+Update messaging dependency versions in package.json,1,SHALLOW_WORK,0.29
+Update team roster and contact information in HR system,3,ADMINISTRATIVE,0.523
+Create onboarding documentation for inventory SDK users,4,COMMUNICATION,0.577
+Build generative art system for user profile avatars,2,CREATIVE,0.81
+Update inventory of development hardware and software assets,3,ADMINISTRATIVE,0.426
+Fix typo in architecture documentation page,1,SHALLOW_WORK,0.167
+Write compelling copy for homepage landing page,2,CREATIVE,0.584
+Prepare talking points for stakeholder customer call,4,COMMUNICATION,0.429
+Add environment variable for logging setting,1,SHALLOW_WORK,0.13
+Update payment dependency versions in package.json,1,SHALLOW_WORK,0.323
+Create typography system for Luminary design language,2,CREATIVE,0.764
+Compose apology communication regarding analytics service disruption,4,COMMUNICATION,0.44
+Rename tempVal variable to onEvent across codebase,1,SHALLOW_WORK,0.343
+Update changelog for version 5.1.0 release,1,SHALLOW_WORK,0.236
+Design micro-interactions for gateway hover and focus states,2,CREATIVE,0.785
+Record podcast episode discussing performance optimization industry trends,4,COMMUNICATION,0.443
+Record demo video showing export new capabilities,4,COMMUNICATION,0.399
+Design database schema for export with normalization,0,DEEP_WORK,0.824
+Write compiler pass for dynamic programming optimization in the build system,0,DEEP_WORK,0.826
+Design database schema for export with normalization,0,DEEP_WORK,0.655
+Prepare talking points for 1-on-1 customer call,4,COMMUNICATION,0.657
+Add missing type annotations to scheduling module,1,SHALLOW_WORK,0.397
+Create responsive illustration that adapts to messaging viewport,2,CREATIVE,0.634
+Build real-time time-series processing pipeline with exactly-once semantics,0,DEEP_WORK,0.751
+Write blog post about our real-time sync technical architecture,4,COMMUNICATION,0.521
+Update architecture JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.42
+Build data pipeline for processing log in real-time,0,DEEP_WORK,0.766
+Write unit tests for the scheduling engine covering edge cases,0,DEEP_WORK,0.844
+Create knowledge base article for export troubleshooting,4,COMMUNICATION,0.77
+Run linter and fix formatting issues in scheduling,1,SHALLOW_WORK,0.401
+Review and categorize incoming support tickets for triage,3,ADMINISTRATIVE,0.576
+Review and categorize incoming support tickets for triage,3,ADMINISTRATIVE,0.326
+Create responsive illustration that adapts to payment viewport,2,CREATIVE,0.788
+Create internal FAQ document for two-factor auth rollout,4,COMMUNICATION,0.334
+Add input validation for email field in messaging form,1,SHALLOW_WORK,0.201
+Draft press release for push notification product announcement,4,COMMUNICATION,0.416
+Prepare talking points for 1-on-1 customer call,4,COMMUNICATION,0.422
+Process expense reports for October purchases,3,ADMINISTRATIVE,0.348
+Design micro-interactions for analytics hover and focus states,2,CREATIVE,0.564
+Compose apology communication regarding messaging service disruption,4,COMMUNICATION,0.498
+Archive completed payment project files and close tickets,3,ADMINISTRATIVE,0.335
+Update changelog for version 3.2.1 release,1,SHALLOW_WORK,0.404
+Create onboarding checklist for new frontend engineer hire,3,ADMINISTRATIVE,0.225
+Design data visualization dashboard for clickstream metrics,2,CREATIVE,0.851
+Update team roster and contact information in HR system,3,ADMINISTRATIVE,0.464
+Debug the segfault crash in the search service,0,DEEP_WORK,0.93
+Schedule all-hands meeting with QA team,3,ADMINISTRATIVE,0.351
+Brainstorm innovative solutions for accessibility user pain point,2,CREATIVE,0.774
+Write incident postmortem for the analytics outage last week,4,COMMUNICATION,0.45
+Add .env.example file with required variables,1,SHALLOW_WORK,0.324
+Write formal verification proofs for the inventory safety module,0,DEEP_WORK,0.687
+Create typography system for FlowState design language,2,CREATIVE,0.505
+Fix typo in migration documentation page,1,SHALLOW_WORK,0.254
+Draft email to engineering team about team restructuring deadline change,4,COMMUNICATION,0.459
+Run linter and fix formatting issues in payment,1,SHALLOW_WORK,0.315
+Implement JWT authentication flow with token refresh,0,DEEP_WORK,0.852
+Optimize notification query performance reducing latency by 50%,0,DEEP_WORK,0.994
+Add .env.example file with required variables,1,SHALLOW_WORK,0.294
+Migrate analytics from monolith to microservice architecture,0,DEEP_WORK,0.858
+Compose newsletter update about security audit progress this quarter,4,COMMUNICATION,0.489
+Design database schema for undo-redo with normalization,0,DEEP_WORK,0.723
+Move helpers.js to the analytics directory,1,SHALLOW_WORK,0.145
+Write incident postmortem for the payment outage last week,4,COMMUNICATION,0.394
+Design gamification system for undo-redo user engagement,2,CREATIVE,0.654
+Create typography system for Luminary design language,2,CREATIVE,0.775
+Add environment variable for CDN setting,1,SHALLOW_WORK,0.153
+Write compelling copy for homepage landing page,2,CREATIVE,0.64
+Migrate cache from monolith to microservice architecture,0,DEEP_WORK,0.83
+Implement OAuth 2.0 authentication flow with token refresh,0,DEEP_WORK,0.907
+Draft email to marketing team about infrastructure migration deadline change,4,COMMUNICATION,0.595
+Write technical blog comparing A* vs alternative approaches,4,COMMUNICATION,0.593
+Review and approve 15 pending pull requests,3,ADMINISTRATIVE,0.307
+Draft email to engineering team about security audit deadline change,4,COMMUNICATION,0.506
+Implement gradient descent algorithm for the reporting module,0,DEEP_WORK,0.974
+Implement distributed dynamic programming consensus protocol for cache,0,DEEP_WORK,0.856
+Update contributing JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.174
+Update team roster and contact information in HR system,3,ADMINISTRATIVE,0.525
+Review and approve 6 pending pull requests,3,ADMINISTRATIVE,0.392
+Process expense reports for February purchases,3,ADMINISTRATIVE,0.589
+Pin lodash to specific version for stability,1,SHALLOW_WORK,0.141
+Build data pipeline for processing genomic in real-time,0,DEEP_WORK,0.966
+Coordinate vendor contract renewal for Notion licenses,3,ADMINISTRATIVE,0.492
+Update project timeline in GitHub for Q3 milestones,3,ADMINISTRATIVE,0.421
+Create brand storytelling narrative for Zenith campaign,2,CREATIVE,0.914
+Write technical specification for export architecture,0,DEEP_WORK,0.961
+Design micro-interactions for analytics hover and focus states,2,CREATIVE,0.731
+Write technical blog comparing quicksort vs alternative approaches,4,COMMUNICATION,0.452
+Clean up unused imports in inventory files,1,SHALLOW_WORK,0.376
+Implement simulated annealing algorithm for the messaging module,0,DEEP_WORK,0.879
+Fix broken link in getting started documentation,1,SHALLOW_WORK,0.209
+Record podcast episode discussing security audit industry trends,4,COMMUNICATION,0.401
+Design immersive export experience with parallax scrolling,2,CREATIVE,0.555
+Archive completed inventory project files and close tickets,3,ADMINISTRATIVE,0.479
+Compose apology communication regarding payment service disruption,4,COMMUNICATION,0.341
+Write unit tests for the scheduling engine covering edge cases,0,DEEP_WORK,0.801
+Review and categorize incoming support tickets for triage,3,ADMINISTRATIVE,0.18
+Archive completed dashboard project files and close tickets,3,ADMINISTRATIVE,0.416
+Record demo video showing export new capabilities,4,COMMUNICATION,0.892
+Record podcast episode discussing product launch industry trends,4,COMMUNICATION,0.605
+Document standard operating procedures for incident response workflow,3,ADMINISTRATIVE,0.404
+Organize team standup notes from this week,3,ADMINISTRATIVE,0.447
+Design immersive push notification experience with parallax scrolling,2,CREATIVE,0.401
+Rename tempVal variable to onEvent across codebase,1,SHALLOW_WORK,0.178
+Update contributing JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.261
+Write formal verification proofs for the notification safety module,0,DEEP_WORK,0.762
+Update database configuration for staging environment,1,SHALLOW_WORK,0.092
+Design award-worthy UI for multi-tenant settings panel,2,CREATIVE,0.653
+Implement distributed k-means consensus protocol for reporting,0,DEEP_WORK,0.952
+Rename handleEvent variable to intermediateValue across codebase,1,SHALLOW_WORK,0.232
+Build real-time clickstream processing pipeline with exactly-once semantics,0,DEEP_WORK,0.878
+Add default value for date_of_birth in analytics model,1,SHALLOW_WORK,0.299
+Build data pipeline for processing log in real-time,0,DEEP_WORK,0.866
+Write incident postmortem for the inventory outage last week,4,COMMUNICATION,0.402
+Design immersive collaborative editing experience with parallax scrolling,2,CREATIVE,0.342
+Compose original background music for real-time sync meditation mode,2,CREATIVE,0.656
+Review and categorize incoming support tickets for triage,3,ADMINISTRATIVE,0.255
+Prepare talking points for design review customer call,4,COMMUNICATION,0.515
+Storyboard tutorial video for offline-first walkthrough,2,CREATIVE,0.497
+Update inventory of development hardware and software assets,3,ADMINISTRATIVE,0.368
+Create illustration set for deployment help center articles,2,CREATIVE,0.869
+Create motion design for search state transitions,2,CREATIVE,0.827
+Review and update team access permissions in GitHub,3,ADMINISTRATIVE,0.595
+Design award-worthy UI for multi-tenant settings panel,2,CREATIVE,0.762
+Document standard operating procedures for code review workflow,3,ADMINISTRATIVE,0.266
+Write RFP response for billing enterprise contract,4,COMMUNICATION,0.39
+Pin webpack to specific version for stability,1,SHALLOW_WORK,0.18
+Design gamification system for push notification user engagement,2,CREATIVE,0.905
+Create brand storytelling narrative for Zenith campaign,2,CREATIVE,0.603
+Draft email to product team about infrastructure migration deadline change,4,COMMUNICATION,0.558
+Debug the race condition crash in the notification service,0,DEEP_WORK,0.88
+Write unit tests for the scheduling engine covering edge cases,0,DEEP_WORK,0.95
+Add environment variable for S3 setting,1,SHALLOW_WORK,0.362
+Add logging to payment endpoint,1,SHALLOW_WORK,0.293
+Design fault-tolerant gateway with automatic failover and recovery,0,DEEP_WORK,0.816
+Debug the race condition crash in the scheduling service,0,DEEP_WORK,0.935
+Prepare slide deck for architecture stakeholder presentation,3,ADMINISTRATIVE,0.107
+Write compiler pass for quicksort optimization in the build system,0,DEEP_WORK,0.723
+Refactor the inventory codebase to use hexagonal pattern,0,DEEP_WORK,0.945
+Audit search service uptime logs for last month,3,ADMINISTRATIVE,0.471
+Brainstorm innovative solutions for accessibility user pain point,2,CREATIVE,0.602
+Plan and book travel for upcoming architecture conference,3,ADMINISTRATIVE,0.365
+Write technical specification for auto-save architecture,0,DEEP_WORK,0.807
+Create onboarding checklist for new designer hire,3,ADMINISTRATIVE,0.263
+Create typography system for Luminary design language,2,CREATIVE,0.54
+Add .env.example file with required variables,1,SHALLOW_WORK,0.247
+Storyboard tutorial video for version history walkthrough,2,CREATIVE,0.57
+Create brand storytelling narrative for AuraSync campaign,2,CREATIVE,0.501
+Add logging to inventory endpoint,1,SHALLOW_WORK,0.16
+Reply to client feedback about scheduling performance issues,4,COMMUNICATION,0.586
+Run linter and fix formatting issues in notification,1,SHALLOW_WORK,0.248
+Write release notes for user-profile version 3.2.1,4,COMMUNICATION,0.485
+Design and implement caching strategy for messaging reducing DB load,0,DEEP_WORK,0.978
+Design micro-interactions for auth hover and focus states,2,CREATIVE,0.714
+Write blog post about our push notification technical architecture,4,COMMUNICATION,0.682
+Document standard operating procedures for incident response workflow,3,ADMINISTRATIVE,0.318
+Reconcile February budget allocation across departments,3,ADMINISTRATIVE,0.306
+Design award-worthy UI for multi-tenant settings panel,2,CREATIVE,0.491
+Rename handleEvent variable to userProfile across codebase,1,SHALLOW_WORK,0.341
+Implement custom gradient descent solver for the constraint optimization engine,0,DEEP_WORK,0.867
+Rename handleEvent variable to userProfile across codebase,1,SHALLOW_WORK,0.258
+Create motion design for dashboard state transitions,2,CREATIVE,0.831
+Fix broken link in deployment documentation,1,SHALLOW_WORK,0.517
+Create tutorial walkthrough for auto-save API integration,4,COMMUNICATION,0.33
+Write RFP response for billing enterprise contract,4,COMMUNICATION,0.588
+Analyze log dataset and build regression model,0,DEEP_WORK,0.831
+Update team roster and contact information in HR system,3,ADMINISTRATIVE,0.383
+Clean up unused imports in notification files,1,SHALLOW_WORK,0.355
+Create visual identity for FlowState product launch,2,CREATIVE,0.781
+Process expense reports for October purchases,3,ADMINISTRATIVE,0.411
+Write compiler pass for backpropagation optimization in the build system,0,DEEP_WORK,0.856
+Create brand storytelling narrative for Zenith campaign,2,CREATIVE,0.723
+Audit gateway service uptime logs for last month,3,ADMINISTRATIVE,0.311
+Compose original background music for dark mode meditation mode,2,CREATIVE,0.596
+Bump version number for cache hotfix release,1,SHALLOW_WORK,0.458
+Pin prisma to specific version for stability,1,SHALLOW_WORK,0.161
+Prepare slide deck for architecture stakeholder presentation,3,ADMINISTRATIVE,0.43
+Write formal verification proofs for the reporting safety module,0,DEEP_WORK,0.921
+Coordinate vendor contract renewal for GitHub licenses,3,ADMINISTRATIVE,0.28
+Process expense reports for October purchases,3,ADMINISTRATIVE,0.421
+Pin lodash to specific version for stability,1,SHALLOW_WORK,0.378
+Organize team standup notes from this week,3,ADMINISTRATIVE,0.349
+Prepare slide deck for all-hands stakeholder presentation,3,ADMINISTRATIVE,0.237
+Document standard operating procedures for release workflow,3,ADMINISTRATIVE,0.311
+Coordinate vendor contract renewal for GitHub licenses,3,ADMINISTRATIVE,0.267
+Create motion design for analytics state transitions,2,CREATIVE,0.57
+Bump version number for cache hotfix release,1,SHALLOW_WORK,0.123
+Debug the race condition crash in the messaging service,0,DEEP_WORK,0.868
+Plan and book travel for upcoming sprint planning conference,3,ADMINISTRATIVE,0.381
+Add input validation for date_of_birth field in dashboard form,1,SHALLOW_WORK,0.379
+Update changelog for version 1.12.0 release,1,SHALLOW_WORK,0.248
+Create tutorial walkthrough for push notification API integration,4,COMMUNICATION,0.457
+Compose apology communication regarding reporting service disruption,4,COMMUNICATION,0.575
+Update API version number to 5.1.0,1,SHALLOW_WORK,0.269
+Write RFP response for reporting enterprise contract,4,COMMUNICATION,0.742
+Draft proposal for two-factor auth partnership opportunity,4,COMMUNICATION,0.343
+Add missing type annotations to cache module,1,SHALLOW_WORK,0.21
+File quarterly GDPR compliance report,3,ADMINISTRATIVE,0.316
+Audit analytics service uptime logs for last month,3,ADMINISTRATIVE,0.228
+Profile and fix memory leak in notification under high concurrency,0,DEEP_WORK,0.906
+Update team roster and contact information in HR system,3,ADMINISTRATIVE,0.581
+Build data pipeline for processing transaction in real-time,0,DEEP_WORK,0.746
+Build real-time time-series processing pipeline with exactly-once semantics,0,DEEP_WORK,0.8
+Write compiler pass for A* optimization in the build system,0,DEEP_WORK,0.947
+Pin axios to specific version for stability,1,SHALLOW_WORK,0.25
+Create onboarding documentation for notification SDK users,4,COMMUNICATION,0.63
+Prototype new multi-tenant experience using Figma,2,CREATIVE,0.71
+Audit payment service uptime logs for last month,3,ADMINISTRATIVE,0.299
+Reconcile November budget allocation across departments,3,ADMINISTRATIVE,0.275
+Design interactive user-profile visualization with animations,2,CREATIVE,0.659
+Refactor the gateway codebase to use singleton pattern,0,DEEP_WORK,0.755
+Update team roster and contact information in HR system,3,ADMINISTRATIVE,0.448
+Audit user-profile service uptime logs for last month,3,ADMINISTRATIVE,0.395
+Create knowledge base article for real-time sync troubleshooting,4,COMMUNICATION,0.451
+Create onboarding checklist for new designer hire,3,ADMINISTRATIVE,0.285
+Add missing type annotations to auth module,1,SHALLOW_WORK,0.213
+Create motion design for analytics state transitions,2,CREATIVE,0.893
+Design and implement caching strategy for billing reducing DB load,0,DEEP_WORK,0.917
+Write RFP response for search enterprise contract,4,COMMUNICATION,0.579
+Process expense reports for March purchases,3,ADMINISTRATIVE,0.317
+Draft email to marketing team about infrastructure migration deadline change,4,COMMUNICATION,0.555
+Create illustration set for deployment help center articles,2,CREATIVE,0.52
+Brainstorm innovative solutions for onboarding drop-off user pain point,2,CREATIVE,0.572
+Debug the stack overflow crash in the user-profile service,0,DEEP_WORK,0.862
+Write compiler pass for genetic optimization in the build system,0,DEEP_WORK,0.849
+Create onboarding checklist for new QA hire,3,ADMINISTRATIVE,0.17
+Update contributing JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.262
+Design fault-tolerant messaging with automatic failover and recovery,0,DEEP_WORK,0.978
+Compose apology communication regarding scheduling service disruption,4,COMMUNICATION,0.351
+Review and categorize incoming support tickets for triage,3,ADMINISTRATIVE,0.563
+Write release notes for messaging version 5.1.0,4,COMMUNICATION,0.384
+Coordinate vendor contract renewal for Linear licenses,3,ADMINISTRATIVE,0.438
+Rename processItem variable to intermediateValue across codebase,1,SHALLOW_WORK,0.533
+Analyze sensor dataset and build regression model,0,DEEP_WORK,0.673
+Run linter and fix formatting issues in gateway,1,SHALLOW_WORK,0.0
+Write RFP response for payment enterprise contract,4,COMMUNICATION,0.628
+Add default value for date_of_birth in billing model,1,SHALLOW_WORK,0.325
+Clean up unused imports in scheduling files,1,SHALLOW_WORK,0.328
+Optimize analytics query performance reducing latency by 50%,0,DEEP_WORK,0.766
+Implement OAuth 2.0 authentication flow with token refresh,0,DEEP_WORK,0.951
+Record demo video showing multi-tenant new capabilities,4,COMMUNICATION,0.686
+Plan and book travel for upcoming stakeholder conference,3,ADMINISTRATIVE,0.378
+Build real-time sensor processing pipeline with exactly-once semantics,0,DEEP_WORK,0.901
+Update README with new export setup instructions,1,SHALLOW_WORK,0.286
+Add .env.example file with required variables,1,SHALLOW_WORK,0.164
+Implement custom BFS solver for the constraint optimization engine,0,DEEP_WORK,0.882
+Brainstorm innovative solutions for accessibility user pain point,2,CREATIVE,0.635
+Reply to client feedback about dashboard performance issues,4,COMMUNICATION,0.577
+Update security JIRA tickets with current sprint status,3,ADMINISTRATIVE,0.409
+Sketch wireframes for dark mode mobile experience,2,CREATIVE,0.779
+Create tutorial walkthrough for auto-save API integration,4,COMMUNICATION,0.462
+Implement distributed random forest consensus protocol for scheduling,0,DEEP_WORK,0.786
+Compose newsletter update about security audit progress this quarter,4,COMMUNICATION,0.522
+Rename userData variable to transformItem across codebase,1,SHALLOW_WORK,0.298
+Schedule 1-on-1 meeting with design team,3,ADMINISTRATIVE,0.341
+Design database schema for auto-save with normalization,0,DEEP_WORK,0.825
+Migrate auth from monolith to microservice architecture,0,DEEP_WORK,0.889
+Compose original background music for real-time sync meditation mode,2,CREATIVE,0.565
+Audit cache service uptime logs for last month,3,ADMINISTRATIVE,0.333
+Compose original background music for offline-first meditation mode,2,CREATIVE,0.761
+Add default value for email in inventory model,1,SHALLOW_WORK,0.363
+Update team roster and contact information in HR system,3,ADMINISTRATIVE,0.371
+Draft SOW document for undo-redo consulting engagement,4,COMMUNICATION,0.606
+Design and implement caching strategy for analytics reducing DB load,0,DEEP_WORK,0.851
+Design interactive cache visualization with animations,2,CREATIVE,0.789
+Fix broken link in migration documentation,1,SHALLOW_WORK,0.144
+Optimize reporting query performance reducing latency by 50%,0,DEEP_WORK,0.79
+Analyze transaction dataset and build regression model,0,DEEP_WORK,0.849
+Reconcile February budget allocation across departments,3,ADMINISTRATIVE,0.375
+Implement OpenID Connect authentication flow with token refresh,0,DEEP_WORK,0.789
+Coordinate vendor contract renewal for Linear licenses,3,ADMINISTRATIVE,0.511
+Design data visualization dashboard for geospatial metrics,2,CREATIVE,0.797
+Add input validation for phone_number field in notification form,1,SHALLOW_WORK,0.401
+Review and approve 12 pending pull requests,3,ADMINISTRATIVE,0.28
+File quarterly accessibility compliance report,3,ADMINISTRATIVE,0.288
+Process expense reports for October purchases,3,ADMINISTRATIVE,0.402
+Move types.d.ts to the gateway directory,1,SHALLOW_WORK,0.409
+Process expense reports for March purchases,3,ADMINISTRATIVE,0.303
+Write compelling copy for product tour landing page,2,CREATIVE,0.761
+Profile and fix memory leak in messaging under high concurrency,0,DEEP_WORK,0.808
+Implement distributed Monte Carlo consensus protocol for inventory,0,DEEP_WORK,0.695
+Compile weekly status report for QA management review,3,ADMINISTRATIVE,0.32
+Write release notes for messaging version 5.1.0,4,COMMUNICATION,0.622
+Compile weekly status report for marketing management review,3,ADMINISTRATIVE,0.319
+Add missing type annotations to messaging module,1,SHALLOW_WORK,0.367
+Migrate payment from monolith to microservice architecture,0,DEEP_WORK,0.937
+Pin moment to specific version for stability,1,SHALLOW_WORK,0.444
+Run linter and fix formatting issues in inventory,1,SHALLOW_WORK,0.436
+Audit billing service uptime logs for last month,3,ADMINISTRATIVE,0.253
+Refactor the payment codebase to use event-driven pattern,0,DEEP_WORK,0.78
+Add input validation for date_of_birth field in billing form,1,SHALLOW_WORK,0.173
+Record podcast episode discussing security audit industry trends,4,COMMUNICATION,0.481
+Record demo video showing collaborative editing new capabilities,4,COMMUNICATION,0.365
+Record podcast episode discussing team restructuring industry trends,4,COMMUNICATION,0.388
+Write unit tests for the cache engine covering edge cases,0,DEEP_WORK,0.806
+Fix broken link in architecture documentation,1,SHALLOW_WORK,0.259
+Process expense reports for March purchases,3,ADMINISTRATIVE,0.35
+Write release notes for inventory version 2.8.0,4,COMMUNICATION,0.461
+Migrate user-profile from monolith to microservice architecture,0,DEEP_WORK,0.902
+Draft proposal for collaborative editing partnership opportunity,4,COMMUNICATION,0.237
+Create onboarding checklist for new PM hire,3,ADMINISTRATIVE,0.458
+Clean up unused imports in user-profile files,1,SHALLOW_WORK,0.264
+Build generative art system for user profile avatars,2,CREATIVE,0.638
+Draft press release for export product announcement,4,COMMUNICATION,0.651
+Write unit tests for the payment engine covering edge cases,0,DEEP_WORK,0.847
+Design immersive collaborative editing experience with parallax scrolling,2,CREATIVE,0.778
+Sketch wireframes for push notification mobile experience,2,CREATIVE,0.631
+Implement random forest algorithm for the gateway module,0,DEEP_WORK,0.877
+Write RFP response for auth enterprise contract,4,COMMUNICATION,0.328
+Draft SOW document for auto-save consulting engagement,4,COMMUNICATION,0.547
+Create machine learning feature extraction for transaction analysis,0,DEEP_WORK,1.0
+Build data pipeline for processing geospatial in real-time,0,DEEP_WORK,0.949
+Design interactive search visualization with animations,2,CREATIVE,0.697
+Write release notes for billing version 4.0.0,4,COMMUNICATION,0.503
+Prepare talking points for sprint planning customer call,4,COMMUNICATION,0.28
+Review and update team access permissions in Linear,3,ADMINISTRATIVE,0.346
+Design fault-tolerant cache with automatic failover and recovery,0,DEEP_WORK,0.742

@@ -1,0 +1,19 @@
+C:\Users\samai\AppData\Local\Programs\Python\Python312\Lib\site-packages\xgboost\sklearn.py:1395: UserWarning: `use_label_encoder` is deprecated in 1.7.0.
+  warnings.warn("`use_label_encoder` is deprecated in 1.7.0.")
+C:\Users\samai\AppData\Local\Programs\Python\Python312\Lib\site-packages\xgboost\sklearn.py:1395: UserWarning: `use_label_encoder` is deprecated in 1.7.0.
+  warnings.warn("`use_label_encoder` is deprecated in 1.7.0.")
+C:\Users\samai\AppData\Local\Programs\Python\Python312\Lib\site-packages\xgboost\sklearn.py:1395: UserWarning: `use_label_encoder` is deprecated in 1.7.0.
+  warnings.warn("`use_label_encoder` is deprecated in 1.7.0.")
+C:\Users\samai\AppData\Local\Programs\Python\Python312\Lib\site-packages\xgboost\sklearn.py:1395: UserWarning: `use_label_encoder` is deprecated in 1.7.0.
+  warnings.warn("`use_label_encoder` is deprecated in 1.7.0.")
+C:\Users\samai\AppData\Local\Programs\Python\Python312\Lib\site-packages\xgboost\sklearn.py:1395: UserWarning: `use_label_encoder` is deprecated in 1.7.0.
+  warnings.warn("`use_label_encoder` is deprecated in 1.7.0.")
+C:\Users\samai\AppData\Local\Programs\Python\Python312\Lib\site-packages\xgboost\sklearn.py:1395: UserWarning: `use_label_encoder` is deprecated in 1.7.0.
+  warnings.warn("`use_label_encoder` is deprecated in 1.7.0.")
+Traceback (most recent call last):
+  File "C:\Users\samai\Desktop\aiml\ani-flow-optimizer\training\train_audio_xgboost.py", line 145, in <module>
+    main()
+  File "C:\Users\samai\Desktop\aiml\ani-flow-optimizer\training\train_audio_xgboost.py", line 107, in main
+    print(f"     {feature_names[idx]}: {shap_importance[idx]:.4f}")
+                  ~~~~~~~~~~~~~^^^^^
+TypeError: only integer scalar arrays can be converted to a scalar index

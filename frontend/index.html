@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANI — Creative Flow Optimizer | AI Cognitive State Classifier</title>
+    <meta name="description" content="ANI is a multimodal AI system that classifies your cognitive work state in real-time using vision, audio, and NLP models fused through a meta-classifier ensemble.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loader-container">
+            <div class="loader-ring"></div>
+            <div class="loader-text">
+                <h2>ANI</h2>
+                <p id="loading-status">Initializing neural models...</p>
+                <div class="progress-bar">
+                    <div id="loading-progress" class="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app" class="app hidden">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon" id="ani-avatar">
+                        <svg viewBox="0 0 40 40" class="ani-svg">
+                            <defs>
+                                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#8B5CF6"/>
+                                    <stop offset="100%" style="stop-color:#06B6D4"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="20" cy="20" r="18" fill="url(#grad1)" opacity="0.9"/>
+                            <circle cx="14" cy="16" r="3" fill="white" class="eye left-eye"/>
+                            <circle cx="26" cy="16" r="3" fill="white" class="eye right-eye"/>
+                            <path d="M13 25 Q20 32 27 25" stroke="white" stroke-width="2" fill="none" class="mouth"/>
+                        </svg>
+                    </div>
+                    <span class="logo-text">ANI</span>
+                </div>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-panel="dashboard"><span class="nav-icon">◉</span> Dashboard</li>
+                <li data-panel="session"><span class="nav-icon">▶</span> Session</li>
+                <li data-panel="models"><span class="nav-icon">⬡</span> Models</li>
+                <li data-panel="history"><span class="nav-icon">☰</span> History</li>
+                <li data-panel="settings"><span class="nav-icon">⚙</span> Settings</li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="model-status" id="model-status-indicator">
+                    <span class="status-dot offline"></span>
+                    <span>Models offline</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="top-left">
+                    <h1 id="panel-title">Dashboard</h1>
+                    <span class="breadcrumb">Creative Flow Optimizer</span>
+                </div>
+                <div class="top-right">
+                    <div class="user-badge" id="user-badge">
+                        <span class="consistency-tag" id="consistency-tag">—</span>
+                        <span class="user-name" id="user-name">User</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Panel -->
+            <section id="panel-dashboard" class="panel active">
+                <!-- Flow State Card -->
+                <div class="card-grid">
+                    <div class="card flow-state-card glass" id="flow-state-card">
+                        <div class="card-header">
+                            <h3>Current Flow State</h3>
+                            <span class="badge" id="confidence-badge">—</span>
+                        </div>
+                        <div class="flow-display">
+                            <div class="flow-circle" id="flow-circle">
+                                <div class="flow-inner">
+                                    <span class="flow-emoji" id="flow-emoji">🧠</span>
+                                    <span class="flow-label" id="flow-label">Waiting</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flow-probabilities" id="flow-probabilities">
+                            <div class="prob-row"><span>Pseudo-Working</span><div class="prob-bar"><div class="prob-fill" data-class="0"></div></div><span class="prob-val">—</span></div>
+                            <div class="prob-row"><span>Task-Switching</span><div class="prob-bar"><div class="prob-fill" data-class="1"></div></div><span class="prob-val">—</span></div>
+                            <div class="prob-row"><span>Distracted</span><div class="prob-bar"><div class="prob-fill" data-class="2"></div></div><span class="prob-val">—</span></div>
+                            <div class="prob-row"><span>Soft Flow</span><div class="prob-bar"><div class="prob-fill" data-class="3"></div></div><span class="prob-val">—</span></div>
+                            <div class="prob-row"><span>Deep Flow</span><div class="prob-bar"><div class="prob-fill" data-class="4"></div></div><span class="prob-val">—</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Modality Cards -->
+                    <div class="card glass modality-card" id="vision-card">
+                        <div class="card-header">
+                            <h3>👁️ Vision</h3>
+                            <span class="modality-status" id="vision-status">Idle</span>
+                        </div>
+                        <div class="modality-metrics">
+                            <div class="metric"><span class="metric-label">Tabs</span><span class="metric-value" id="metric-tabs">—</span></div>
+                            <div class="metric"><span class="metric-label">Phone</span><span class="metric-value" id="metric-phone">—</span></div>
+                            <div class="metric"><span class="metric-label">Distractions</span><span class="metric-value" id="metric-distractions">—</span></div>
+                            <div class="metric"><span class="metric-label">Focus</span><span class="metric-value" id="metric-focus">—</span></div>
+                        </div>
+                    </div>
+
+                    <div class="card glass modality-card" id="audio-card">
+                        <div class="card-header">
+                            <h3>🎙️ Audio</h3>
+                            <span class="modality-status" id="audio-status">Idle</span>
+                        </div>
+                        <div class="modality-metrics">
+                            <div class="metric"><span class="metric-label">Speech</span><span class="metric-value" id="metric-speech">—</span></div>
+                            <div class="metric"><span class="metric-label">WPM</span><span class="metric-value" id="metric-wpm">—</span></div>
+                            <div class="metric"><span class="metric-label">Fluency</span><span class="metric-value" id="metric-fluency">—</span></div>
+                            <div class="metric"><span class="metric-label">Confidence</span><span class="metric-value" id="metric-audio-conf">—</span></div>
+                        </div>
+                        <div class="audio-viz" id="audio-visualizer"></div>
+                    </div>
+
+                    <div class="card glass modality-card" id="nlp-card">
+                        <div class="card-header">
+                            <h3>📝 NLP</h3>
+                            <span class="modality-status" id="nlp-status">Idle</span>
+                        </div>
+                        <div class="modality-metrics">
+                            <div class="metric"><span class="metric-label">Task Type</span><span class="metric-value" id="metric-task-type">—</span></div>
+                            <div class="metric"><span class="metric-label">Demand</span><span class="metric-value" id="metric-demand">—</span></div>
+                            <div class="metric"><span class="metric-label">Confidence</span><span class="metric-value" id="metric-nlp-conf">—</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Timeline Card -->
+                    <div class="card glass timeline-card">
+                        <div class="card-header">
+                            <h3>📊 Session Timeline</h3>
+                            <span class="time-range" id="session-duration">0:00</span>
+                        </div>
+                        <canvas id="timeline-canvas" width="800" height="200"></canvas>
+                    </div>
+
+                    <!-- Feature Importance Card -->
+                    <div class="card glass importance-card">
+                        <div class="card-header">
+                            <h3>🔍 Top Features</h3>
+                        </div>
+                        <div id="feature-importance" class="feature-list">
+                            <p class="empty-state">Start a session to see feature analysis</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Session Panel -->
+            <section id="panel-session" class="panel">
+                <div class="session-controls">
+                    <div class="card glass session-setup">
+                        <h3>Session Setup</h3>
+                        <div class="form-group">
+                            <label for="task-input">What are you working on?</label>
+                            <textarea id="task-input" placeholder="e.g., Implementing authentication module for the dashboard..." rows="3"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Audio Input</label>
+                                <button id="btn-mic" class="btn btn-outline"><span>🎙️</span> Enable Microphone</button>
+                            </div>
+                            <div class="form-group">
+                                <label>Screen Capture</label>
+                                <button id="btn-screen" class="btn btn-outline"><span>🖥️</span> Share Screen</button>
+                            </div>
+                        </div>
+                        <div class="session-actions">
+                            <button id="btn-start" class="btn btn-primary btn-large">▶ Start Session</button>
+                            <button id="btn-stop" class="btn btn-danger btn-large hidden">⏹ Stop Session</button>
+                        </div>
+                    </div>
+
+                    <div class="card glass session-info">
+                        <h3>How It Works</h3>
+                        <div class="info-steps">
+                            <div class="info-step">
+                                <span class="step-num">1</span>
+                                <div><strong>Describe your task</strong><p>The NLP model classifies your work type and cognitive demand</p></div>
+                            </div>
+                            <div class="info-step">
+                                <span class="step-num">2</span>
+                                <div><strong>Enable microphone</strong><p>Speech patterns reveal cognitive load (WPM, fluency, pauses)</p></div>
+                            </div>
+                            <div class="info-step">
+                                <span class="step-num">3</span>
+                                <div><strong>Share screen (optional)</strong><p>Vision model detects tab count, phone, and distractions</p></div>
+                            </div>
+                            <div class="info-step">
+                                <span class="step-num">4</span>
+                                <div><strong>Meta-classifier fuses all signals</strong><p>Random Forest predicts your flow state with calibrated probabilities</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Models Panel -->
+            <section id="panel-models" class="panel">
+                <div class="models-grid">
+                    <div class="card glass model-detail-card">
+                        <h3>👁️ Vision — YOLOv8-nano</h3>
+                        <div class="model-info">
+                            <div class="info-row"><span>Architecture</span><span>YOLOv8-nano + Custom Head</span></div>
+                            <div class="info-row"><span>Input</span><span>640×640 RGB Screenshot</span></div>
+                            <div class="info-row"><span>Output</span><span>4 features</span></div>
+                            <div class="info-row"><span>Target mAP@0.5</span><span>&gt; 0.75</span></div>
+                            <div class="info-row"><span>Format</span><span>ONNX (opset 12)</span></div>
+                            <div class="info-row" id="vision-model-status"><span>Status</span><span class="tag tag-offline">Not loaded</span></div>
+                        </div>
+                    </div>
+                    <div class="card glass model-detail-card">
+                        <h3>🎙️ Audio — XGBoost</h3>
+                        <div class="model-info">
+                            <div class="info-row"><span>Architecture</span><span>XGBoost (300 trees, depth 6)</span></div>
+                            <div class="info-row"><span>Input</span><span>52-dim Librosa features</span></div>
+                            <div class="info-row"><span>Output</span><span>5-class speech classification</span></div>
+                            <div class="info-row"><span>Target F1</span><span>&gt; 0.72 (macro)</span></div>
+                            <div class="info-row"><span>Format</span><span>ONNX</span></div>
+                            <div class="info-row" id="audio-model-status"><span>Status</span><span class="tag tag-offline">Not loaded</span></div>
+                        </div>
+                    </div>
+                    <div class="card glass model-detail-card">
+                        <h3>📝 NLP — DistilBERT</h3>
+                        <div class="model-info">
+                            <div class="info-row"><span>Architecture</span><span>DistilBERT + Classification Head</span></div>
+                            <div class="info-row"><span>Input</span><span>Text (max 128 tokens)</span></div>
+                            <div class="info-row"><span>Output</span><span>5-class task type + demand score</span></div>
+                            <div class="info-row"><span>Target Accuracy</span><span>&gt; 78%</span></div>
+                            <div class="info-row"><span>Format</span><span>ONNX (opset 14)</span></div>
+                            <div class="info-row" id="nlp-model-status"><span>Status</span><span class="tag tag-offline">Not loaded</span></div>
+                        </div>
+                    </div>
+                    <div class="card glass model-detail-card">
+                        <h3>🔀 Meta — Random Forest</h3>
+                        <div class="model-info">
+                            <div class="info-row"><span>Architecture</span><span>RF + Platt Scaling Calibration</span></div>
+                            <div class="info-row"><span>Input</span><span>11-dim fused vector</span></div>
+                            <div class="info-row"><span>Output</span><span>5-class flow state + probabilities</span></div>
+                            <div class="info-row"><span>Target F1</span><span>&gt; 0.74 (macro)</span></div>
+                            <div class="info-row"><span>Target ECE</span><span>&lt; 0.10</span></div>
+                            <div class="info-row" id="meta-model-status"><span>Status</span><span class="tag tag-offline">Not loaded</span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- History Panel -->
+            <section id="panel-history" class="panel">
+                <div class="card glass">
+                    <div class="card-header">
+                        <h3>Session History</h3>
+                        <button id="btn-export" class="btn btn-outline btn-sm">📥 Export CSV</button>
+                    </div>
+                    <div id="history-list" class="history-list">
+                        <p class="empty-state">No sessions recorded yet. Start a session to begin tracking.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Panel -->
+            <section id="panel-settings" class="panel">
+                <div class="settings-grid">
+                    <div class="card glass">
+                        <h3>User Profile</h3>
+                        <div class="form-group">
+                            <label for="settings-name">Display Name</label>
+                            <input type="text" id="settings-name" placeholder="Your name" value="">
+                        </div>
+                        <div class="form-group">
+                            <label>Calibration Status</label>
+                            <div class="calibration-info" id="calibration-info">
+                                <span class="tag tag-offline">Not calibrated</span>
+                                <p>Complete at least 5 sessions to calibrate your personal baseline.</p>
+                            </div>
+                        </div>
+                        <button id="btn-save-profile" class="btn btn-primary">Save Profile</button>
+                    </div>
+                    <div class="card glass">
+                        <h3>Model Configuration</h3>
+                        <div class="form-group">
+                            <label>Inference Interval</label>
+                            <select id="settings-interval">
+                                <option value="15000">Every 15 seconds</option>
+                                <option value="30000" selected>Every 30 seconds</option>
+                                <option value="60000">Every 60 seconds</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Demo Mode</label>
+                            <label class="toggle">
+                                <input type="checkbox" id="settings-demo" checked>
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-label">Use simulated inference (no ONNX models needed)</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card glass">
+                        <h3>Data Management</h3>
+                        <button id="btn-clear-data" class="btn btn-danger">🗑️ Clear All Data</button>
+                        <p class="help-text">This will remove all session history and calibration data from IndexedDB.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="js/user_profile.js"></script>
+    <script src="js/audio_extractor.js"></script>
+    <script src="js/vision_preprocessor.js"></script>
+    <script src="js/nlp_tokenizer.js"></script>
+    <script src="js/inference_pipeline.js"></script>
+    <script src="js/ui_controller.js"></script>
+</body>
+</html>

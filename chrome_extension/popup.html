@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ANI Flow Collector</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            width: 320px;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f0f18;
+            color: #f0f0f5;
+            padding: 16px;
+        }
+        h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #8B5CF6, #06B6D4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .stat {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .stat-label { font-size: 0.65rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-value { font-size: 1.2rem; font-weight: 700; margin-top: 2px; }
+        .section { margin-bottom: 14px; }
+        .section-title { font-size: 0.75rem; font-weight: 600; color: #9ca3af; margin-bottom: 8px; }
+        label { font-size: 0.8rem; display: block; margin-bottom: 4px; color: #d1d5db; }
+        .focus-buttons { display: flex; gap: 6px; margin-bottom: 10px; }
+        .focus-btn {
+            flex: 1; padding: 8px 4px; border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03); color: #d1d5db;
+            border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;
+            transition: all 0.15s;
+        }
+        .focus-btn:hover { background: rgba(139,92,246,0.15); border-color: #8B5CF6; }
+        .focus-btn.selected { background: rgba(139,92,246,0.25); border-color: #8B5CF6; color: #fff; }
+        textarea {
+            width: 100%; padding: 8px; background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;
+            color: #f0f0f5; font-family: inherit; font-size: 0.8rem; resize: none;
+        }
+        textarea:focus { outline: none; border-color: #8B5CF6; }
+        .btn {
+            width: 100%; padding: 10px; border: none; border-radius: 8px;
+            font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 8px;
+            transition: all 0.15s;
+        }
+        .btn-primary { background: linear-gradient(135deg, #8B5CF6, #06B6D4); color: white; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(139,92,246,0.3); }
+        .btn-outline {
+            background: transparent; color: #9ca3af;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); }
+        .btn-danger { background: rgba(239,68,68,0.15); color: #EF4444; border: 1px solid rgba(239,68,68,0.2); }
+        .toast { font-size: 0.75rem; color: #10B981; text-align: center; margin-top: 8px; display: none; }
+    </style>
+</head>
+<body>
+    <h2>🧠 ANI Flow Collector</h2>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-label">Data Points</div>
+            <div class="stat-value" id="stat-total">—</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Avg Tabs</div>
+            <div class="stat-value" id="stat-tabs">—</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Self Reports</div>
+            <div class="stat-value" id="stat-reports">—</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Avg Focus</div>
+            <div class="stat-value" id="stat-focus">—</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">How focused are you right now?</div>
+        <div class="focus-buttons">
+            <button class="focus-btn" data-score="1">1</button>
+            <button class="focus-btn" data-score="2">2</button>
+            <button class="focus-btn" data-score="3">3</button>
+            <button class="focus-btn" data-score="4">4</button>
+            <button class="focus-btn" data-score="5">5</button>
+        </div>
+        <label>What are you working on?</label>
+        <textarea id="task-input" rows="2" placeholder="e.g., Debugging auth module..."></textarea>
+        <button class="btn btn-primary" id="btn-submit">Submit Report</button>
+        <div class="toast" id="toast">✅ Report saved!</div>
+    </div>
+
+    <button class="btn btn-outline" id="btn-export">📥 Export CSV</button>
+    <button class="btn btn-danger" id="btn-clear" style="margin-top:6px">🗑️ Clear Data</button>
+
+    <script src="data_logger.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>

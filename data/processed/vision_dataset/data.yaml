@@ -1,0 +1,6 @@
+path: C:\Users\samai\Desktop\aiml\ani-flow-optimizer\data\processed\vision_dataset
+train: images/train
+val: images/val
+
+nc: 4
+names: ['tab_bar', 'phone', 'distraction', 'work_tool']
