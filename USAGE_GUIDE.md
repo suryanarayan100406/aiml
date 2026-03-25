@@ -1,60 +1,61 @@
-# 🧠 ANI Creative Flow Optimizer — Usage Guide
+# 🧠 ANI Creative Flow Optimizer — User Manual
 
-This guide explains how to run, install, and use the ANI Creative Flow Optimizer project.
+Welcome to **ANI**, your personal AI cognitive state classifier and flow optimizer. ANI is designed to monitor your work habits in real-time and help you achieve and maintain **Deep Work**.
 
-## 1. Quick Start (Demo Mode)
-If you just want to see the UI in action without running any Python code or ML models:
-1. Open Chrome.
-2. Press `Ctrl + O` (or `Cmd + O` on Mac).
-3. Select `frontend/index.html` from this repository.
-4. Click **Start Session**. In "Demo Mode", the dashboard will simulate cognitive load inference realistically based on your microphone input and task description!
+This guide explains how to use the ANI dashboard and Chrome extension to track your cognitive flow.
 
 ---
 
-## 2. Installing the Chrome Extension
-The Chrome extension is required if you want to log real-world usage data to calibrate the meta-classifier.
+## 🚀 1. Starting a Focus Session
 
-**How to Install:**
-1. Open Chrome and go to `chrome://extensions/`.
-2. Turn on **Developer mode** (toggle switch in the top right corner).
-3. Click the **Load unpacked** button.
-4. Select the `chrome_extension` folder located inside this project directory.
-5. The extension will now appear in your browser toolbar. Click the `ANI` icon to log your focus score and export your collected CSV data!
+When you open the ANI application, you'll start on the Dashboard. To begin tracking your flow state:
 
----
-
-## 3. Running the Full Machine Learning Pipeline
-If you want to train the actual ONNX models using the Python backend:
-
-### Prerequisites:
-Ensure you have Python 3.10+ installed. Then, open a terminal in the project directory and run:
-```bash
-pip install -r requirements.txt
-```
-
-### Step 3.1: Generate Synthetic Data
-Run the data generators to create the training datasets:
-```bash
-python data/scripts/generate_synthetic_tasks.py
-python data/scripts/generate_synthetic_audio.py
-python data/scripts/generate_synthetic_vision.py
-python data/scripts/generate_fused_dataset.py
-```
-
-### Step 3.2: Train the Models
-Execute the training scripts. These scripts will train the models and export them to `.pkl` and `.onnx` formats in the `models/` directory:
-```bash
-python training/train_audio_xgboost.py
-python training/train_meta_classifier.py
-```
-*(Note: Visual and NLP training scripts require larger libraries like `torch` and `ultralytics` which may take longer to run)*
-
-### Step 3.3: Use the Frontend with Real Models
-Once the `.onnx` models are generated in the `models/` directory, open `frontend/index.html` again. The application will detect the ONNX models and switch off Demo Mode, running full client-side inference using your local WebAssembly engine!
+1. Click on **Session** in the left sidebar.
+2. **Describe your task**: In the text box, write out what you are currently working on (e.g., *"Writing an email to the marketing team"* or *"Debugging the authentication module"*). ANI uses Natural Language Processing to instantly classify how cognitively demanding this task is.
+3. **Enable Inputs**:
+   - Click **Enable Microphone** to allow ANI to analyze your speech patterns (Words Per Minute, pauses, and vocal fluency).
+   - Click **Share Screen** to allow ANI to analyze your visual distractions (tab counts, phone presence).
+4. Click **Start Session**.
 
 ---
 
-## Troubleshooting
-- **Missing Models Warning:** If the frontend says "Models offline", it means the `.onnx` files are missing from the `models/` folder. It will seamlessly fall back to Demo Mode.
-- **Microphone/Screen errors:** Ensure you grant Chrome the necessary permissions when clicking "Start Session".
-- **Chrome Extension Icon Error:** If you see `Could not load icon`, ensure the `generate_icons.py` script ran successfully to populate the `chrome_extension/icons/` folder.
+## 📊 2. Understanding Your Dashboard
+
+Once a session is active, navigate back to the **Dashboard** to see your real-time cognitive metrics.
+
+### The Flow State Ring
+At the center of your dashboard is the Current Flow State ring. It will transition colors based on your current cognitive load:
+* 🟣 **Deep Flow**: You are highly focused, undistracted, and working on a demanding task.
+* 🟢 **Soft Flow**: You are focused, but the task is less demanding or slightly routine.
+* 🟡 **Distracted**: You have too many tabs open, or you are looking at your phone.
+* 🟠 **Task-Switching**: You are bouncing rapidly between different contexts.
+* 🔴 **Pseudo-Working**: You are at your computer but not engaged in productive work (e.g., long pauses in speech, idle behavior).
+
+### Modality Cards
+Surrounding the Flow State ring are individual AI analysis cards:
+* **👁️ Vision**: Shows how many browser tabs are visible, whether your phone is detected, and your overall visual focus ratio.
+* **🎙️ Audio**: Displays your speaking speed (WPM) and vocal fluency. Erratic or overly slow speech can imply high cognitive strain or distraction.
+* **📝 NLP**: Shows what type of work ANI thinks you are doing based on your initial task description, along with its estimated cognitive demand.
+
+---
+
+## 🧩 3. The Chrome Extension
+
+ANI learns from *you*. The Chrome Extension passively collects data to fine-tune its understanding of what "Deep Work" looks like for your specific work style.
+
+1. **Passive Tracking**: As you work, the extension silently counts how many tabs you have open and classifies the type of websites you visit.
+2. **Self-Reporting Focus**: 
+   - Click the **ANI icon** in your browser toolbar anytime during your workday.
+   - You will see a quick popup asking: *"How focused are you right now?"*
+   - Select a score from **1 (Distracted)** to **5 (Deep Flow)**.
+   - Enter a brief note about what you are doing, then click **Submit Report**.
+   
+This self-reported data is saved to your local machine and is used by the AI to align its predictions with your actual feelings of productivity.
+
+---
+
+## ⚙️ 4. Reviewing Your Models
+Curious about how the AI works? Click on the **Models** tab in the sidebar to see the live technical specifications of the 4 neural networks powering your experience (YOLOv8 for vision, XGBoost for Audio, DistilBERT for Text, and Random Forest for fusion).
+
+---
+*ANI respects your privacy. All audio, vision, and text processing happens directly on your machine. No screen captures or voice recordings are ever sent to the cloud.*
