@@ -53,7 +53,6 @@ def main():
         learning_rate=0.05,
         subsample=0.8,
         colsample_bytree=0.8,
-        use_label_encoder=False,
         eval_metric='mlogloss',
         random_state=42,
         n_jobs=-1,
@@ -99,18 +98,25 @@ def main():
         shap_values = explainer.shap_values(X_scaled[:100])
         print("   SHAP values computed for first 100 samples")
 
-        # Save SHAP summary
-        if isinstance(shap_values, list):
-            shap_importance = np.mean(np.abs(shap_values), axis=(0, 1))
-        elif len(shap_values.shape) == 3:
-            shap_importance = np.mean(np.abs(shap_values), axis=(0, 2)) if shap_values.shape[2] == len(CLASS_NAMES) else np.mean(np.abs(shap_values), axis=(0, 1))
+        # Safely compute per-feature importance regardless of SHAP output shape
+        sv = np.array(shap_values)
+        if sv.ndim == 3:
+            # shape (n_classes, n_samples, n_features) or (n_samples, n_features, n_classes)
+            if sv.shape[0] == len(CLASS_NAMES):
+                shap_importance = np.mean(np.abs(sv), axis=(0, 1))  # → (n_features,)
+            else:
+                shap_importance = np.mean(np.abs(sv), axis=(0, 2))  # → (n_features,)
+        elif sv.ndim == 2:
+            shap_importance = np.mean(np.abs(sv), axis=0)
         else:
-            shap_importance = np.mean(np.abs(shap_values), axis=0)
-            
+            shap_importance = np.zeros(X.shape[1])
+
+        shap_importance = np.asarray(shap_importance).flatten()
         top_shap = np.argsort(shap_importance)[::-1][:5]
         print("   Top 5 SHAP features:")
         for idx in top_shap:
-            print(f"     {feature_names[int(idx)]}: {float(shap_importance[idx]):.4f}")
+            i = int(idx)
+            print(f"     {feature_names[i]}: {float(shap_importance[i]):.4f}")
     except ImportError:
         print("   ⚠️ SHAP not installed, skipping explainability analysis")
     except Exception as e:
@@ -127,15 +133,36 @@ def main():
 
     # ONNX export
     if args.export_onnx:
+        onnx_path = os.path.join(model_dir, "speech_classifier.onnx")
+        exported = False
+        # Method 1: skl2onnx (works for many sklearn-compatible models)
         try:
-            from skl2onnx import to_onnx
-            onnx_model = to_onnx(model, X_scaled[:1].astype(np.float32))
-            onnx_path = os.path.join(model_dir, "speech_classifier.onnx")
+            from skl2onnx import convert_sklearn
+            from skl2onnx.common.data_types import FloatTensorType
+            onnx_model = convert_sklearn(
+                model, "speech_classifier",
+                [("input", FloatTensorType([None, X_scaled.shape[1]]))]
+            )
             with open(onnx_path, "wb") as f:
                 f.write(onnx_model.SerializeToString())
-            print(f"   ONNX exported: {onnx_path}")
-        except Exception as e:
-            print(f"   ⚠️ ONNX export failed: {e}")
+            print(f"   ONNX exported (skl2onnx): {onnx_path}")
+            exported = True
+        except Exception as e1:
+            print(f"   ⚠️ skl2onnx export failed: {e1}")
+        # Method 2: onnxmltools fallback
+        if not exported:
+            try:
+                from onnxmltools import convert_xgboost
+                from onnxmltools.convert.common.data_types import FloatTensorType as FTT
+                onnx_model = convert_xgboost(model, initial_types=[("input", FTT([None, X_scaled.shape[1]]))])
+                with open(onnx_path, "wb") as f:
+                    f.write(onnx_model.SerializeToString())
+                print(f"   ONNX exported (onnxmltools): {onnx_path}")
+                exported = True
+            except Exception as e2:
+                print(f"   ⚠️ onnxmltools export also failed: {e2}")
+        if not exported:
+            print("   ❌ All ONNX export methods failed. Only .pkl saved.")
 
     # Save evaluation metrics
     metrics = {

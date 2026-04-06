@@ -1,6 +1,7 @@
 /**
  * ANI Flow Data Collector — Content Script
- * Runs on every page to collect screen-level context.
+ * Bridges real-time tab data from the Chrome extension to the ANI frontend.
+ * Runs on every page, but actively pushes data only when ANI dashboard is open.
  */
 
 // ─── Page Context Extraction ──────────────────────────────────
@@ -27,19 +28,63 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return true;
     }
 
-    if (msg.type === 'CAPTURE_VISIBLE') {
-        // Request a screenshot from the background script
-        chrome.runtime.sendMessage({ type: 'CAPTURE_SCREEN' }, (response) => {
-            sendResponse(response);
-        });
+    // Background sends us tab data to push to the page
+    if (msg.type === 'TAB_DATA_UPDATE') {
+        // Push to the page via CustomEvent so ANI frontend can read it
+        window.dispatchEvent(new CustomEvent('ani-tab-data', {
+            detail: msg.data
+        }));
+        sendResponse({ ok: true });
         return true;
     }
 });
 
+// ─── Listen for requests FROM the ANI frontend page ───────────
+// The frontend page dispatches 'ani-request-tabs' when it needs tab data
+window.addEventListener('ani-request-tabs', () => {
+    chrome.runtime.sendMessage({ type: 'GET_TAB_DATA' }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.warn('[ANI Extension] No response from background:', chrome.runtime.lastError.message);
+            return;
+        }
+        if (response) {
+            window.dispatchEvent(new CustomEvent('ani-tab-data', {
+                detail: response
+            }));
+        }
+    });
+});
+
+// ─── Auto-push tab data every 10 seconds when ANI is on this page ──
+// Detect if this is the ANI dashboard page
+const isAniPage = document.title.includes('ANI') || 
+                   document.querySelector('#ani-avatar') !== null ||
+                   window.location.href.includes('ani-flow-optimizer');
+
+if (isAniPage) {
+    console.log('[ANI Extension] Dashboard detected, starting tab data push');
+    
+    // Push immediately
+    requestTabData();
+    
+    // Then every 10 seconds
+    setInterval(requestTabData, 10000);
+}
+
+function requestTabData() {
+    chrome.runtime.sendMessage({ type: 'GET_TAB_DATA' }, (response) => {
+        if (chrome.runtime.lastError) return;
+        if (response) {
+            window.dispatchEvent(new CustomEvent('ani-tab-data', {
+                detail: response
+            }));
+        }
+    });
+}
+
 // ─── Periodic context reporting ───────────────────────────────
-// Reports context to background every 5 minutes for enriched data collection
 let lastReport = 0;
-const REPORT_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const REPORT_INTERVAL = 5 * 60 * 1000;
 
 function maybeReport() {
     const now = Date.now();
@@ -50,12 +95,10 @@ function maybeReport() {
     chrome.runtime.sendMessage({
         type: 'PAGE_CONTEXT_UPDATE',
         data: context,
-    }).catch(() => {}); // Background may not be listening
+    }).catch(() => {});
 }
 
-// Check periodically
 setInterval(maybeReport, 60000);
-// Also on visibility change
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') maybeReport();
 });

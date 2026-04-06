@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "ANI Flow Data Collector",
-    "version": "1.0.0",
-    "description": "Passively collects flow state training data: tab counts, screen captures, and self-reported focus ratings.",
+    "version": "1.1.0",
+    "description": "Tracks open tabs and active page context for ANI Flow Optimizer. Sends real-time tab data to the ANI dashboard.",
     "permissions": [
         "tabs",
         "activeTab",
@@ -25,6 +25,13 @@
         "16": "icons/icon16.png",
         "48": "icons/icon48.png",
         "128": "icons/icon128.png"
+    },
+    "externally_connectable": {
+        "matches": [
+            "http://localhost/*",
+            "http://127.0.0.1/*",
+            "https://localhost/*"
+        ]
     },
     "content_scripts": [
         {

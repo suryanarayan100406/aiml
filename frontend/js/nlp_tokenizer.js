@@ -19,7 +19,7 @@ class NLPTokenizer {
     }
 
     /** Load vocabulary file */
-    async loadVocab(vocabUrl = 'models/vocab.txt') {
+    async loadVocab(vocabUrl = '../models/vocab.txt') {
         try {
             const response = await fetch(vocabUrl);
             if (!response.ok) {

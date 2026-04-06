@@ -1,0 +1,13 @@
+# Datasets and large items
+data/
+runs/
+*.zip
+*.pt
+__pycache__/
+.venv/
+node_modules/
+.env
+
+# MacOS / OS specific
+.DS_Store
+Thumbs.db

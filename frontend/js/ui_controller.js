@@ -1,6 +1,7 @@
 /**
  * UIController — Main application controller.
- * Manages UI state, session lifecycle, chart rendering, and toast notifications.
+ * Manages UI state, session lifecycle, chart rendering, toast notifications,
+ * and the ANI Flow Guardian integration.
  */
 (async function () {
     'use strict';
@@ -14,9 +15,12 @@
         intervalMs: 30000,
         results: [],
         pipeline: null,
+        guardian: null,
         profile: window.userProfile,
         micEnabled: false,
         screenEnabled: false,
+        webcamEnabled: false,
+        focusTimerInterval: null,
     };
 
     // ─── DOM References ───────────────────────────────────────
@@ -33,11 +37,15 @@
         const demoMode = $('#settings-demo')?.checked ?? true;
         await state.pipeline.init(demoMode);
 
-        updateLoadingStatus('Setting up interface...', 80);
+        updateLoadingStatus('Initializing Flow Guardian...', 70);
+        state.guardian = new AniGuardian();
+
+        updateLoadingStatus('Setting up interface...', 85);
         setupNavigation();
         setupSessionControls();
         setupSettings();
         setupAudioVisualizer();
+        setupGuardianControls();
         updateUserBadge();
 
         updateLoadingStatus('Ready!', 100);
@@ -86,7 +94,8 @@
                     $('#btn-mic').innerHTML = '<span>🎙️</span> Microphone Active';
                     $('#btn-mic').classList.add('btn-primary');
                     $('#btn-mic').classList.remove('btn-outline');
-                    showToast('🎙️', 'Microphone enabled');
+                    showToast('🎙️', 'Microphone enabled — speak to see the audio meter react!');
+                    startLiveAudioLevel(); // Start reactive audio visualizer
                 } else {
                     showToast('❌', 'Microphone access denied');
                 }
@@ -108,8 +117,60 @@
             }
         });
 
+        // Webcam button — enables camera for phone/desk detection
+        $('#btn-webcam')?.addEventListener('click', async () => {
+            if (!state.webcamEnabled) {
+                const ok = await state.pipeline.enableWebcam();
+                if (ok) {
+                    state.webcamEnabled = true;
+                    $('#btn-webcam').innerHTML = '<span>📷</span> Webcam Active';
+                    $('#btn-webcam').classList.add('btn-primary');
+                    $('#btn-webcam').classList.remove('btn-outline');
+                    showToast('📷', 'Webcam enabled — point it at your desk to detect phone!');
+
+                    // Show preview
+                    const container = $('#webcam-preview-container');
+                    if (container) container.classList.remove('hidden');
+
+                    // Start webcam preview loop
+                    startWebcamPreview();
+                } else {
+                    showToast('❌', 'Webcam access denied');
+                }
+            }
+        });
+
         $('#btn-start').addEventListener('click', startSession);
         $('#btn-stop').addEventListener('click', stopSession);
+    }
+
+    /** Live webcam preview with detection overlay */
+    function startWebcamPreview() {
+        const canvas = $('#webcam-preview');
+        if (!canvas) return;
+
+        function render() {
+            if (!state.webcamEnabled) return;
+
+            const vp = state.pipeline.getVisionPreprocessor();
+            if (vp && vp.isActive) {
+                vp.drawDetections(canvas);
+            }
+
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+    }
+
+    // ─── Guardian Controls ────────────────────────────────────
+    function setupGuardianControls() {
+        $('#btn-focus-mode')?.addEventListener('click', () => {
+            startFocusMode();
+        });
+
+        $('#btn-end-focus')?.addEventListener('click', () => {
+            endFocusMode();
+        });
     }
 
     async function startSession() {
@@ -122,6 +183,7 @@
         state.sessionActive = true;
         state.sessionStart = Date.now();
         state.results = [];
+        state.guardian.reset();
 
         $('#btn-start').classList.add('hidden');
         $('#btn-stop').classList.remove('hidden');
@@ -136,6 +198,13 @@
         showToast('▶', 'Session started');
         updateModelStatus('online', 'Models active');
 
+        // Clear welcome message and show session start
+        const msgContainer = $('#guardian-messages');
+        if (msgContainer) {
+            msgContainer.innerHTML = '';
+            addGuardianMessage('🚀', `Session started! I'm analyzing your work on: "${taskText.substring(0, 60)}${taskText.length > 60 ? '...' : ''}" — let's find your flow!`, 'pleased');
+        }
+
         // Run first inference immediately
         await runInference(taskText);
 
@@ -146,6 +215,9 @@
 
         // Start audio visualizer animation
         if (state.micEnabled) startAudioVisualizerLoop();
+
+        // Start session duration updater
+        updateSessionDurationLoop();
     }
 
     function stopSession() {
@@ -157,6 +229,12 @@
 
         $('#btn-start').classList.remove('hidden');
         $('#btn-stop').classList.add('hidden');
+
+        // Show session summary from guardian
+        const summary = state.guardian.getSessionSummary();
+        if (summary) {
+            addGuardianMessage(summary.emoji, summary.message, 'pleased');
+        }
 
         // Save session summary
         if (state.results.length > 0) {
@@ -179,6 +257,10 @@
         state.pipeline.stop();
         updateModelStatus('offline', 'Models offline');
         showToast('⏹', 'Session ended');
+        
+        // Hide focus button
+        const focusBtn = $('#btn-focus-mode');
+        if (focusBtn) focusBtn.style.display = 'none';
     }
 
     function getDominantState() {
@@ -197,8 +279,129 @@
             state.results.push(result);
             updateDashboard(result);
             updateSessionDuration();
+
+            // Get guardian response
+            const response = state.guardian.generateResponse(result);
+            displayGuardianResponse(response);
         } catch (err) {
             console.error('Inference error:', err);
+        }
+    }
+
+    // ─── Guardian Display ─────────────────────────────────────
+    function displayGuardianResponse(response) {
+        // Add message
+        addGuardianMessage(response.emoji, response.message, response.mood);
+
+        // Update quality badge
+        const badge = $('#guardian-quality');
+        if (badge) {
+            badge.textContent = `${response.workQualityProbability}% Quality`;
+            const qualityNum = parseFloat(response.workQualityProbability);
+            if (qualityNum > 60) {
+                badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                badge.style.color = '#10B981';
+            } else if (qualityNum > 35) {
+                badge.style.background = 'rgba(245, 158, 11, 0.15)';
+                badge.style.color = '#F59E0B';
+            } else {
+                badge.style.background = 'rgba(239, 68, 68, 0.15)';
+                badge.style.color = '#EF4444';
+            }
+        }
+
+        // Update avatar mood
+        const avatar = $('#guardian-avatar');
+        if (avatar) {
+            avatar.className = `guardian-avatar mood-${response.mood}`;
+            if (response.severity === 'high') avatar.classList.add('urgent');
+        }
+
+        // Display action items as chips
+        if (response.actionItems && response.actionItems.length > 0) {
+            const actionsContainer = $('#guardian-actions');
+            // Remove old action chips
+            actionsContainer.querySelectorAll('.action-chip').forEach(c => c.remove());
+            response.actionItems.forEach(action => {
+                const chip = document.createElement('span');
+                chip.className = 'action-chip';
+                chip.textContent = action;
+                actionsContainer.appendChild(chip);
+            });
+        }
+
+        // Show focus button if suggested
+        const focusBtn = $('#btn-focus-mode');
+        if (focusBtn) {
+            focusBtn.style.display = response.suggestFocus ? 'inline-flex' : 'none';
+        }
+    }
+
+    function addGuardianMessage(emoji, text, mood = '') {
+        const container = $('#guardian-messages');
+        if (!container) return;
+
+        const msg = document.createElement('div');
+        msg.className = `guardian-message${mood ? ` mood-${mood}` : ''}`;
+        msg.innerHTML = `
+            <span class="guardian-msg-emoji">${emoji}</span>
+            <span class="guardian-msg-text">${text}</span>
+        `;
+        container.appendChild(msg);
+
+        // Keep last 10 messages
+        while (container.children.length > 10) {
+            container.removeChild(container.firstChild);
+        }
+
+        // Auto-scroll
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // ─── Focus Mode ───────────────────────────────────────────
+    function startFocusMode() {
+        const result = state.guardian.startFocusMode(25);
+        showToast(result.emoji, result.message);
+        addGuardianMessage(result.emoji, result.message, 'happy');
+
+        // Show overlay
+        $('#focus-timer-overlay')?.classList.remove('hidden');
+
+        // Update timer display
+        state.focusTimerInterval = setInterval(() => {
+            if (!state.guardian.isFocusMode) {
+                endFocusMode();
+                return;
+            }
+            const timeStr = state.guardian.getFocusTimeFormatted();
+            const timerEl = $('#focus-timer-value');
+            if (timerEl) timerEl.textContent = timeStr;
+
+            // Update ring progress
+            const total = 25 * 60;
+            const remaining = state.guardian.focusTimeRemaining;
+            const progress = (1 - remaining / total) * 327; // 327 = 2πr where r=52
+            const ring = $('#focus-ring-progress');
+            if (ring) ring.setAttribute('stroke-dashoffset', 327 - progress);
+        }, 1000);
+
+        // Hide focus button
+        const focusBtn = $('#btn-focus-mode');
+        if (focusBtn) focusBtn.style.display = 'none';
+    }
+
+    function endFocusMode() {
+        const result = state.guardian.endFocusMode();
+        showToast(result.emoji, result.message);
+        addGuardianMessage(result.emoji, result.message, 'happy');
+
+        // Hide overlay
+        $('#focus-timer-overlay')?.classList.add('hidden');
+
+        // Clear interval
+        if (state.focusTimerInterval) {
+            clearInterval(state.focusTimerInterval);
+            state.focusTimerInterval = null;
         }
     }
 
@@ -223,22 +426,35 @@
             if (vals[i]) vals[i].textContent = `${(prob * 100).toFixed(0)}%`;
         });
 
-        // Vision metrics
+        // Vision metrics + data source badge
         if (result.vision) {
             $('#metric-tabs').textContent = result.vision.tabCount;
             $('#metric-phone').textContent = result.vision.phoneVisible;
             $('#metric-distractions').textContent = result.vision.distractions;
             $('#metric-focus').textContent = result.vision.focusRatio;
-            $('#vision-status').textContent = 'Active';
+            const vs = $('#vision-status');
+            if (vs) {
+                const src = result.vision.source || 'simulated';
+                if (src === 'webcam' || src === 'yolo-webcam') { vs.textContent = 'Webcam'; vs.style.cssText = 'color:#10B981'; }
+                else if (src === 'extension') { vs.textContent = 'Extension'; vs.style.cssText = 'color:#10B981'; }
+                else if (src === 'screen-capture') { vs.textContent = 'Screen'; vs.style.cssText = 'color:#06B6D4'; }
+                else if (src === 'webcam-heuristic') { vs.textContent = 'Webcam*'; vs.style.cssText = 'color:#06B6D4'; }
+                else { vs.textContent = 'Simulated'; vs.style.cssText = 'color:#F59E0B'; }
+            }
         }
 
-        // Audio metrics
+        // Audio metrics + data source badge
         if (result.audio) {
             $('#metric-speech').textContent = result.audio.speechClass;
             $('#metric-wpm').textContent = result.audio.wpm;
             $('#metric-fluency').textContent = result.audio.fluency;
             $('#metric-audio-conf').textContent = result.audio.confidence;
-            $('#audio-status').textContent = state.micEnabled ? 'Active' : 'Simulated';
+            const as = $('#audio-status');
+            if (as) {
+                const src = result.audio.source || 'simulated';
+                if (src === 'microphone') { as.textContent = 'Microphone'; as.style.cssText = 'color:#10B981'; }
+                else { as.textContent = 'Simulated'; as.style.cssText = 'color:#F59E0B'; }
+            }
         }
 
         // NLP metrics
@@ -246,7 +462,8 @@
             $('#metric-task-type').textContent = result.nlp.taskType;
             $('#metric-demand').textContent = result.nlp.demand;
             $('#metric-nlp-conf').textContent = result.nlp.confidence;
-            $('#nlp-status').textContent = 'Active';
+            const ns = $('#nlp-status');
+            if (ns) { ns.textContent = 'Active'; ns.style.cssText = 'color:#10B981'; }
         }
 
         // Feature importance
@@ -273,6 +490,13 @@
         const mins = Math.floor(elapsed / 60);
         const secs = elapsed % 60;
         $('#session-duration').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function updateSessionDurationLoop() {
+        const ticker = setInterval(() => {
+            if (!state.sessionActive) { clearInterval(ticker); return; }
+            updateSessionDuration();
+        }, 1000);
     }
 
     // ─── Timeline Chart ───────────────────────────────────────
@@ -362,20 +586,119 @@
     function setupAudioVisualizer() {
         const container = $('#audio-visualizer');
         if (!container) return;
+
+        // Create frequency bars
         for (let i = 0; i < 32; i++) {
             const bar = document.createElement('div');
-            bar.className = 'bar';
-            bar.style.height = '2px';
+            bar.className = 'viz-bar';
+            bar.style.cssText = `
+                display: inline-block;
+                width: 3px;
+                height: 2px;
+                margin: 0 1px;
+                background: linear-gradient(to top, #06B6D4, #8B5CF6);
+                border-radius: 2px;
+                transition: height 0.05s ease;
+                vertical-align: bottom;
+            `;
             container.appendChild(bar);
         }
+
+        // Add audio level indicator below the bars
+        const levelRow = document.createElement('div');
+        levelRow.id = 'audio-level-row';
+        levelRow.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            padding: 6px 0;
+        `;
+        levelRow.innerHTML = `
+            <span id="mic-live-dot" style="
+                width: 8px; height: 8px; border-radius: 50%;
+                background: #6b7280; flex-shrink: 0;
+                transition: background 0.2s, box-shadow 0.2s;
+            "></span>
+            <div id="audio-level-bar" style="
+                flex: 1; height: 6px; border-radius: 3px;
+                background: rgba(255,255,255,0.05); overflow: hidden;
+            ">
+                <div id="audio-level-fill" style="
+                    width: 0%; height: 100%; border-radius: 3px;
+                    background: linear-gradient(90deg, #06B6D4, #8B5CF6);
+                    transition: width 0.08s ease;
+                "></div>
+            </div>
+            <span id="mic-live-label" style="
+                font-size: 0.6rem; font-weight: 700; color: #6b7280;
+                font-family: 'JetBrains Mono', monospace;
+                letter-spacing: 0.05em;
+            ">MIC OFF</span>
+        `;
+        container.parentElement.appendChild(levelRow);
+    }
+
+    /** Start live audio level — runs immediately when mic is enabled, even before session */
+    function startLiveAudioLevel() {
+        const fill = $('#audio-level-fill');
+        const dot = $('#mic-live-dot');
+        const label = $('#mic-live-label');
+
+        if (!fill || !dot || !label) return;
+
+        // Mark mic as live
+        label.textContent = 'LIVE';
+        label.style.color = '#10B981';
+        dot.style.background = '#10B981';
+        dot.style.boxShadow = '0 0 8px rgba(16, 185, 129, 0.6)';
+
+        function updateLevel() {
+            if (!state.micEnabled) {
+                fill.style.width = '0%';
+                dot.style.background = '#6b7280';
+                dot.style.boxShadow = 'none';
+                label.textContent = 'MIC OFF';
+                label.style.color = '#6b7280';
+                return;
+            }
+
+            // Get real audio data
+            const data = state.pipeline.getAudioFrequencyData();
+            if (data.length > 0) {
+                // Compute RMS level from frequency data
+                let sum = 0;
+                for (let i = 0; i < data.length; i++) sum += data[i];
+                const avg = sum / data.length;
+                const level = Math.min(100, (avg / 128) * 100);
+
+                fill.style.width = level + '%';
+
+                // Pulse dot when detecting sound
+                if (level > 10) {
+                    dot.style.background = '#10B981';
+                    dot.style.boxShadow = '0 0 12px rgba(16, 185, 129, 0.8)';
+                    label.textContent = 'HEARING YOU';
+                    label.style.color = '#10B981';
+                } else {
+                    dot.style.background = '#F59E0B';
+                    dot.style.boxShadow = '0 0 6px rgba(245, 158, 11, 0.4)';
+                    label.textContent = 'LISTENING...';
+                    label.style.color = '#F59E0B';
+                }
+            }
+
+            requestAnimationFrame(updateLevel);
+        }
+        requestAnimationFrame(updateLevel);
     }
 
     function startAudioVisualizerLoop() {
         function update() {
             if (!state.sessionActive || !state.micEnabled) return;
             const data = state.pipeline.getAudioFrequencyData();
-            const bars = $$('#audio-visualizer .bar');
-            const step = Math.floor(data.length / bars.length);
+            const bars = $$('#audio-visualizer .viz-bar');
+            const step = Math.floor(data.length / bars.length) || 1;
             bars.forEach((bar, i) => {
                 const val = data[i * step] || 0;
                 bar.style.height = Math.max(2, val / 255 * 40) + 'px';
@@ -414,7 +737,10 @@
             showToast('📥', 'CSV exported');
         });
 
-        $('#settings-name').value = state.profile.userId !== 'default' ? state.profile.userId : '';
+        const nameInput = $('#settings-name');
+        if (nameInput) {
+            nameInput.value = state.profile.userId !== 'default' ? state.profile.userId : '';
+        }
     }
 
     // ─── History ──────────────────────────────────────────────

@@ -107,6 +107,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return true; // Async response
     }
 
+    if (msg.type === 'GET_TAB_DATA') {
+        getFullTabData().then(data => {
+            sendResponse(data);
+        });
+        return true;
+    }
+
     if (msg.type === 'GET_ALL_DATA') {
         chrome.storage.local.get('dataPoints').then(result => {
             sendResponse({ data: result.dataPoints || [] });
@@ -130,3 +137,60 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return true;
     }
 });
+
+// ─── Full Tab Data for Frontend ───────────────────────────────
+async function getFullTabData() {
+    const tabs = await chrome.tabs.query({});
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    // Categorize all tabs
+    let workTabs = 0, socialTabs = 0, entertainmentTabs = 0, otherTabs = 0;
+    const domains = new Set();
+
+    tabs.forEach(tab => {
+        try {
+            const domain = new URL(tab.url).hostname;
+            domains.add(domain);
+            const cat = classifyDomain(domain);
+            if (cat === 'work' || cat === 'email') workTabs++;
+            else if (cat === 'social') socialTabs++;
+            else if (cat === 'news' || cat === 'shopping') entertainmentTabs++;
+            else otherTabs++;
+        } catch { otherTabs++; }
+    });
+
+    return {
+        tabCount: tabs.length,
+        uniqueDomains: domains.size,
+        workTabs,
+        socialTabs,
+        entertainmentTabs,
+        otherTabs,
+        activeTitle: activeTab?.title || 'Unknown',
+        activeDomain: activeTab?.url ? new URL(activeTab.url).hostname : '',
+        activeCategory: activeTab?.url ? classifyDomain(new URL(activeTab.url).hostname) : 'other',
+        distractionTabs: socialTabs + entertainmentTabs,
+        tabCountNorm: Math.min(tabs.length / 30, 1.0),
+        timestamp: Date.now(),
+        extensionConnected: true,
+    };
+}
+
+// ─── Proactive Tab Change Push ────────────────────────────────
+// Push tab updates to all ANI dashboard tabs when tabs change
+async function pushTabUpdate() {
+    const data = await getFullTabData();
+    // Send to all tabs — content script will filter
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+        try {
+            chrome.tabs.sendMessage(tab.id, { type: 'TAB_DATA_UPDATE', data }).catch(() => {});
+        } catch {}
+    }
+}
+
+// Listen for tab events
+chrome.tabs.onCreated.addListener(pushTabUpdate);
+chrome.tabs.onRemoved.addListener(pushTabUpdate);
+chrome.tabs.onActivated.addListener(pushTabUpdate);
+

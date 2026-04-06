@@ -869,3 +869,259 @@ body {
     .importance-card { grid-column: 1; }
     .session-controls, .models-grid, .settings-grid { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   ANI Guardian Chat Panel
+   ═══════════════════════════════════════════════════════════ */
+
+.ani-guardian-panel {
+    margin-top: 16px;
+    position: relative;
+    overflow: hidden;
+}
+
+.ani-guardian-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--gradient-primary);
+    opacity: 0.6;
+}
+
+.guardian-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.guardian-avatar {
+    width: 32px; height: 32px;
+    flex-shrink: 0;
+    transition: transform 0.3s var(--ease-out);
+}
+
+.guardian-avatar:hover { transform: scale(1.1); }
+
+.ani-mini-svg {
+    width: 100%; height: 100%;
+    filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.4));
+}
+
+.ani-mini-svg .eye {
+    animation: blink 4s ease-in-out infinite;
+}
+
+.guardian-quality-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--accent-purple);
+    letter-spacing: 0.03em;
+}
+
+.guardian-messages {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-right: 4px;
+    scroll-behavior: smooth;
+}
+
+.guardian-message {
+    display: flex;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    background: rgba(139, 92, 246, 0.06);
+    border: 1px solid rgba(139, 92, 246, 0.12);
+    animation: messageSlideIn 0.4s var(--ease-out);
+    line-height: 1.5;
+}
+
+@keyframes messageSlideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.guardian-message.mood-happy {
+    background: rgba(16, 185, 129, 0.06);
+    border-color: rgba(16, 185, 129, 0.15);
+}
+
+.guardian-message.mood-concerned {
+    background: rgba(245, 158, 11, 0.06);
+    border-color: rgba(245, 158, 11, 0.15);
+}
+
+.guardian-message.mood-worried {
+    background: rgba(239, 68, 68, 0.06);
+    border-color: rgba(239, 68, 68, 0.15);
+}
+
+.guardian-message.mood-pleased {
+    background: rgba(6, 182, 212, 0.06);
+    border-color: rgba(6, 182, 212, 0.12);
+}
+
+.guardian-message.mood-supportive {
+    background: rgba(236, 72, 153, 0.06);
+    border-color: rgba(236, 72, 153, 0.12);
+}
+
+.guardian-msg-emoji {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.guardian-msg-text {
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    line-height: 1.55;
+}
+
+.guardian-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.guardian-action-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.action-chip {
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    transition: all var(--transition-fast);
+    cursor: default;
+}
+
+.action-chip:hover {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.2);
+    color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Focus Timer Overlay
+   ═══════════════════════════════════════════════════════════ */
+
+.focus-timer-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.5s var(--ease-out);
+}
+
+.focus-timer-card {
+    text-align: center;
+    padding: 40px 56px;
+    border-radius: var(--radius-xl);
+    max-width: 380px;
+    width: 90%;
+}
+
+.focus-timer-ring {
+    position: relative;
+    width: 150px; height: 150px;
+    margin: 0 auto 24px;
+}
+
+.focus-timer-ring svg {
+    width: 100%; height: 100%;
+    transform: rotate(-90deg);
+}
+
+.focus-timer-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.focus-timer-value {
+    font-size: 2rem;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.focus-timer-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+}
+
+.focus-timer-message {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Ani Avatar Mood Expressions
+   ═══════════════════════════════════════════════════════════ */
+
+/* Happy - wide smile */
+.guardian-avatar.mood-happy .mouth,
+.guardian-avatar.mood-happy #guardian-mouth { d: path("M13 24 Q20 33 27 24"); }
+
+/* Concerned - flat mouth */
+.guardian-avatar.mood-concerned .mouth,
+.guardian-avatar.mood-concerned #guardian-mouth { d: path("M14 27 L26 27"); }
+
+/* Worried - frown */
+.guardian-avatar.mood-worried .mouth,
+.guardian-avatar.mood-worried #guardian-mouth { d: path("M14 29 Q20 24 26 29"); }
+
+/* Pleased - small smile */
+.guardian-avatar.mood-pleased .mouth,
+.guardian-avatar.mood-pleased #guardian-mouth { d: path("M15 25 Q20 29 25 25"); }
+
+/* Supportive - open smile */
+.guardian-avatar.mood-supportive .mouth,
+.guardian-avatar.mood-supportive #guardian-mouth { d: path("M14 25 Q20 31 26 25"); }
+
+/* Gentle - slight upturn */
+.guardian-avatar.mood-gentle .mouth,
+.guardian-avatar.mood-gentle #guardian-mouth { d: path("M15 26 Q20 28 25 26"); }
+
+/* Pulse animation for urgency */
+@keyframes guardianPulse {
+    0%, 100% { filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.4)); }
+    50% { filter: drop-shadow(0 0 16px rgba(239, 68, 68, 0.6)); }
+}
+
+.guardian-avatar.urgent .ani-mini-svg {
+    animation: guardianPulse 1.5s ease-in-out infinite;
+}
+
