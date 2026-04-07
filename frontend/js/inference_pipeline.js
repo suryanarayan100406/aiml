@@ -50,19 +50,22 @@ class InferencePipeline {
 
     /** Set up listener for Chrome Extension tab data */
     _setupExtensionBridge() {
-        window.addEventListener('ani-tab-data', (e) => {
-            this._extensionTabData = e.detail;
-            this._extensionConnected = true;
-            console.log('[ANI] Real tab data from extension:', e.detail);
+        window.addEventListener('message', (e) => {
+            // Ensure message is coming from our window and has the right type
+            if (e.source === window && e.data && e.data.type === 'ANI_TAB_DATA') {
+                this._extensionTabData = e.data.data;
+                this._extensionConnected = true;
+                console.log('[ANI] Real tab data from extension:', e.data.data);
+            }
         });
 
-        // Request tab data immediately
-        window.dispatchEvent(new CustomEvent('ani-request-tabs'));
+        // Request tab data immediately via postMessage
+        window.postMessage({ type: 'ANI_REQUEST_TABS' }, '*');
 
         // Request periodically
         setInterval(() => {
-            window.dispatchEvent(new CustomEvent('ani-request-tabs'));
-        }, 10000);
+            window.postMessage({ type: 'ANI_REQUEST_TABS' }, '*');
+        }, 5000);
     }
 
     /** Get whether extension is providing real tab data */
