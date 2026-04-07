@@ -347,10 +347,27 @@ class InferencePipeline {
 
     /** Full ONNX-based inference */
     async _fullInference(taskText) {
+        // If extension connected, use active tab title as NLP context
+        const extData = this._extensionTabData;
+        const nlpText = taskText || (extData?.activeTab?.title) || '';
+
         // Run all 3 modality models
         const visionResult = await this._runVisionModel();
         const audioResult = await this._runAudioModel();
-        const nlpResult = await this._runNLPModel(taskText);
+        const nlpResult = await this._runNLPModel(nlpText);
+
+        // Enrich vision with extension tab data when available
+        if (extData && extData.extensionConnected) {
+            visionResult.tab_count_norm = extData.tabCountNorm || visionResult.tab_count_norm;
+            visionResult.distraction_count_norm = extData.distractionScore || visionResult.distraction_count_norm;
+            visionResult.focus_ratio = Math.max(visionResult.focus_ratio, extData.productivityScore || 0);
+            // Extension provides real source
+            if (visionResult.source === 'no-webcam' || visionResult.source === 'no-model') {
+                visionResult.source = 'Chrome Extension';
+            } else {
+                visionResult.source = visionResult.source + ' + Extension';
+            }
+        }
 
         // Fuse and run meta-classifier
         const fusedVector = new Float32Array([
@@ -367,9 +384,36 @@ class InferencePipeline {
             try {
                 const metaTensor = new ort.Tensor('float32', fusedVector, [1, 11]);
                 const metaResult = await this.models.meta.run({ input: metaTensor });
-                const label = metaResult.label ? metaResult.label.data[0] : 0;
-                probs = metaResult.probabilities ? Array.from(metaResult.probabilities.data) : probs;
-                flowState = Number(label);
+                
+                // Parse label — sklearn RF exports as int64 tensor named 'label' or 'output_label'
+                const labelKey = Object.keys(metaResult).find(k => k.includes('label') || k === 'output_label');
+                const label = labelKey ? Number(metaResult[labelKey].data[0]) : 0;
+                flowState = label;
+                
+                // Parse probabilities — sklearn RF exports as sequence of maps
+                // which onnxruntime-web may expose differently. Try multiple approaches.
+                const probKey = Object.keys(metaResult).find(k => k.includes('probabilities') || k.includes('probability'));
+                if (probKey) {
+                    try {
+                        // Approach 1: If it's a standard tensor
+                        const probData = metaResult[probKey].data;
+                        if (probData && probData.length >= 5) {
+                            probs = Array.from(probData).slice(0, 5);
+                        }
+                    } catch (probErr) {
+                        // Approach 2: Sequence of maps — not directly readable
+                        // Fall back to setting high confidence on the predicted class
+                        console.warn('[Meta] Probability format not directly readable, using label-based estimation');
+                        probs = [0.05, 0.05, 0.05, 0.05, 0.05];
+                        probs[flowState] = 0.8;
+                    }
+                } else {
+                    // No probability output — estimate from label
+                    probs = [0.05, 0.05, 0.05, 0.05, 0.05];
+                    probs[flowState] = 0.8;
+                }
+                
+                console.log(`[Meta] Flow state=${flowState} (${this.flowStateNames[flowState]}), probs=[${probs.map(p => (p*100).toFixed(0)+'%').join(',')}]`);
             } catch (e) {
                 console.warn('Meta model inference failed:', e);
                 const demoScores = this._demoMetaClassifier(Array.from(fusedVector));
@@ -382,6 +426,12 @@ class InferencePipeline {
             probs = demoScores;
         }
 
+        // Determine data sources
+        const visionSrc = visionResult.source || (this.models.vision ? 'ONNX Model' : 'demo');
+        const audioSrc = audioResult.source || (this.models.audio ? 'ONNX Model' : 'demo');
+        const nlpSrc = nlpResult.source || (this.models.nlp ? 'ONNX Model' : 'demo');
+        const metaSrc = this.models.meta ? 'ONNX Model' : 'demo';
+
         return {
             flowState,
             flowStateName: this.flowStateNames[flowState],
@@ -391,11 +441,22 @@ class InferencePipeline {
             probabilities: probs,
             confidence: Math.max(...probs),
             vision: {
-                tabCount: Math.round(visionResult.tab_count_norm * 30),
+                tabCount: extData?.tabCount || Math.round(visionResult.tab_count_norm * 30),
                 phoneVisible: visionResult.phone_visible ? 'Yes' : 'No',
-                distractions: Math.round(visionResult.distraction_count_norm * 5),
+                distractions: extData ? (extData.categories?.distraction || 0) + (extData.categories?.news || 0) : Math.round(visionResult.distraction_count_norm * 5),
                 focusRatio: (visionResult.focus_ratio * 100).toFixed(0) + '%',
                 features: visionResult,
+                detections: visionResult.detections || [],
+                source: visionSrc,
+                // Extension tab analysis
+                extensionConnected: !!extData?.extensionConnected,
+                tabCategories: extData?.categories || null,
+                productivityScore: extData?.productivityScore || null,
+                distractionScore: extData?.distractionScore || null,
+                switchRate: extData?.switchRate || 0,
+                activeTabTitle: extData?.activeTab?.title || null,
+                activeTabCategory: extData?.activeTab?.category || null,
+                allTabs: extData?.tabs || [],
             },
             audio: {
                 speechClass: this.speechClassNames[audioResult.speech_class] || 'Normal',
@@ -403,38 +464,46 @@ class InferencePipeline {
                 fluency: (audioResult.fluency_score * 100).toFixed(0) + '%',
                 confidence: (audioResult.speech_confidence * 100).toFixed(0) + '%',
                 features: audioResult,
+                classProbs: audioResult.class_probs || null,
+                source: audioSrc,
             },
             nlp: {
                 taskType: this.taskClassNames[nlpResult.task_class] || 'UNKNOWN',
                 demand: (nlpResult.cognitive_demand * 100).toFixed(0) + '%',
                 confidence: (nlpResult.confidence * 100).toFixed(0) + '%',
                 features: nlpResult,
+                classProbs: nlpResult.class_probs || null,
+                source: nlpSrc,
+                analyzedText: nlpText || null,
+            },
+            meta: {
+                flowState: this.flowStateNames[flowState],
+                classProbs: probs,
+                source: metaSrc,
+                fusedVector: Array.from(fusedVector),
             },
             featureImportances: this._computeFeatureImportance(Array.from(fusedVector), flowState),
+            dataSources: { vision: visionSrc, audio: audioSrc, nlp: nlpSrc, meta: metaSrc },
+            extensionConnected: !!extData?.extensionConnected,
             timestamp: Date.now(),
         };
     }
 
     /** Run vision model and extract 4 features */
     async _runVisionModel() {
-        const defaults = { tab_count_norm: 0.3, phone_visible: 0, distraction_count_norm: 0.2, focus_ratio: 0.6 };
+        const defaults = { tab_count_norm: 0.3, phone_visible: 0, distraction_count_norm: 0.2, focus_ratio: 0.6, detections: [], source: 'no-webcam' };
         
         if (!this.models.vision) {
-            // Use demo features from screen capture if available
             const demo = this.visionPreprocessor.extractDemoFeatures();
-            return {
-                tab_count_norm: demo.tab_count_norm,
-                phone_visible: demo.phone_visible,
-                distraction_count_norm: demo.distraction_count_norm,
-                focus_ratio: demo.focus_ratio,
-            };
+            return { ...demo, source: 'no-model', detections: demo.detections || [] };
         }
 
         try {
             const imageData = this.visionPreprocessor.captureAndPreprocess();
-            if (!imageData) return defaults;
+            if (!imageData) {
+                return { ...defaults, source: this.visionPreprocessor.mode ? 'capture-failed' : 'no-webcam' };
+            }
 
-            // Get the correct input name from the model
             const inputNames = this.models.vision.inputNames || ['images'];
             const inputName = inputNames[0];
             const tensor = new ort.Tensor('float32', imageData, [1, 3, 640, 640]);
@@ -442,35 +511,38 @@ class InferencePipeline {
             feeds[inputName] = tensor;
             const result = await this.models.vision.run(feeds);
             
-            // Delegate detection parsing to VisionPreprocessor
-            // which handles both YOLOv8 raw format [1, num_features, num_boxes]
-            // and post-processed format [num_detections, 6]
             const output = result[Object.keys(result)[0]];
             const isCoco = this.visionModelType === 'pretrained_coco';
             const parsed = this.visionPreprocessor.parseDetections(output, isCoco);
+            
+            console.log(`[YOLO] ${parsed.detections.length} detections: ${parsed.detections.map(d => d.className + ':' + (d.confidence*100).toFixed(0) + '%').join(', ') || 'none'}`);
             
             return {
                 tab_count_norm: parsed.tab_count_norm,
                 phone_visible: parsed.phone_visible,
                 distraction_count_norm: parsed.distraction_count_norm,
                 focus_ratio: parsed.focus_ratio,
+                detections: parsed.detections || [],
+                source: 'ONNX Model',
             };
         } catch (e) {
             console.warn('Vision model inference failed:', e);
-            return defaults;
+            return { ...defaults, source: 'error' };
         }
     }
 
     /** Run audio model and extract 4 meta features */
     async _runAudioModel() {
-        const defaults = { speech_class: 2, speech_confidence: 0.7, wpm_norm: 0.55, fluency_score: 0.7 };
+        const defaults = { speech_class: 2, speech_confidence: 0.7, wpm_norm: 0.55, fluency_score: 0.7, class_probs: null, source: 'no-mic' };
         
         if (!this.audioExtractor.isRecording) return defaults;
         
         const rawFeatures = this.audioExtractor.extractFeatures();
         
+        // Update live audio level for visualizer
+        this.currentAudioLevel = Math.min(1, (rawFeatures[45] || 0) * 10);
+        
         if (!this.models.audio) {
-            // Demo mode — derive meta features from raw audio
             const rms = rawFeatures[45];
             const silenceRatio = rawFeatures[51];
             const wpm = rawFeatures[49];
@@ -486,6 +558,8 @@ class InferencePipeline {
                 speech_confidence: 0.6 + Math.random() * 0.3,
                 wpm_norm: Math.min(1, wpm / 220),
                 fluency_score: 1 - silenceRatio,
+                class_probs: null,
+                source: 'no-model',
             };
         }
 
@@ -493,35 +567,39 @@ class InferencePipeline {
             const tensor = new ort.Tensor('float32', rawFeatures, [1, 52]);
             const result = await this.models.audio.run({ input: tensor });
             
-            // Parse XGBoost output — label + probabilities
             const label = result.label ? Number(result.label.data[0]) : 2;
-            const probsData = result.probabilities ? result.probabilities.data : null;
-            const confidence = probsData ? Math.max(...Array.from(probsData)) : 0.7;
+            const probsData = result.probabilities ? Array.from(result.probabilities.data) : null;
+            const confidence = probsData ? Math.max(...probsData) : 0.7;
+            
+            console.log(`[XGBoost] Speech class=${label} (${this.speechClassNames[label]}), confidence=${(confidence*100).toFixed(0)}%`);
             
             return {
                 speech_class: label,
                 speech_confidence: confidence,
                 wpm_norm: Math.min(1, rawFeatures[49] / 220),
                 fluency_score: 1 - rawFeatures[51],
+                class_probs: probsData,
+                source: 'ONNX Model',
             };
         } catch (e) {
             console.warn('Audio model inference failed:', e);
-            return defaults;
+            return { ...defaults, source: 'error' };
         }
     }
 
     /** Run NLP model and extract 3 features */
     async _runNLPModel(taskText) {
-        const defaults = { task_class: 0, cognitive_demand: 0.5, confidence: 0.5 };
+        const defaults = { task_class: 0, cognitive_demand: 0.5, confidence: 0.5, class_probs: null, source: 'no-text' };
         if (!taskText || taskText.trim().length === 0) return defaults;
 
         if (!this.models.nlp) {
-            // Use keyword-based demo classifier
             const demo = this.nlpTokenizer.classifyDemo(taskText);
             return {
                 task_class: demo.taskClass,
                 cognitive_demand: demo.cognitiveDemand,
                 confidence: demo.confidence,
+                class_probs: null,
+                source: 'keyword-demo',
             };
         }
 
@@ -531,7 +609,6 @@ class InferencePipeline {
             const maskTensor = new ort.Tensor('int64', attentionMask, [1, 128]);
             const result = await this.models.nlp.run({ input_ids: idsTensor, attention_mask: maskTensor });
             
-            // Parse DistilBERT logits
             const logits = Array.from(result.logits.data);
             const maxLogit = Math.max(...logits);
             const expLogits = logits.map(l => Math.exp(l - maxLogit));
@@ -540,15 +617,19 @@ class InferencePipeline {
             
             const predictedClass = probs.indexOf(Math.max(...probs));
             
+            console.log(`[DistilBERT] Task="${taskText.substring(0,40)}" → ${this.taskClassNames[predictedClass]} (${(Math.max(...probs)*100).toFixed(0)}%)`);
+            
             return {
                 task_class: predictedClass,
                 cognitive_demand: this.demandMap[predictedClass] || 0.5,
                 confidence: Math.max(...probs),
+                class_probs: probs,
+                source: 'ONNX Model',
             };
         } catch (e) {
             console.warn('NLP model inference failed:', e);
             const demo = this.nlpTokenizer.classifyDemo(taskText);
-            return { task_class: demo.taskClass, cognitive_demand: demo.cognitiveDemand, confidence: demo.confidence };
+            return { task_class: demo.taskClass, cognitive_demand: demo.cognitiveDemand, confidence: demo.confidence, class_probs: null, source: 'error' };
         }
     }
 

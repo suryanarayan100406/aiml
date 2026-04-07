@@ -7,7 +7,7 @@
     <meta name="description" content="ANI is a multimodal AI system that classifies your cognitive work state in real-time using vision, audio, and NLP models fused through a meta-classifier ensemble.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=5">
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -107,40 +107,69 @@
                     <!-- Modality Cards -->
                     <div class="card glass modality-card" id="vision-card">
                         <div class="card-header">
-                            <h3>👁️ Vision</h3>
-                            <span class="modality-status" id="vision-status">Idle</span>
+                            <h3>👁️ Vision — YOLOv8 + Tabs</h3>
+                            <span class="modality-source-badge" id="vision-source-badge">Idle</span>
                         </div>
                         <div class="modality-metrics">
+                            <div class="metric"><span class="metric-label">Phone</span><span class="metric-value metric-highlight" id="metric-phone">—</span></div>
                             <div class="metric"><span class="metric-label">Tabs</span><span class="metric-value" id="metric-tabs">—</span></div>
-                            <div class="metric"><span class="metric-label">Phone</span><span class="metric-value" id="metric-phone">—</span></div>
                             <div class="metric"><span class="metric-label">Distractions</span><span class="metric-value" id="metric-distractions">—</span></div>
                             <div class="metric"><span class="metric-label">Focus</span><span class="metric-value" id="metric-focus">—</span></div>
                         </div>
+                        <div class="detection-details" id="vision-detections">
+                            <div class="detection-list" id="yolo-detection-list">
+                                <span class="empty-det">Start a session to see tab analysis</span>
+                            </div>
+                        </div>
+                        <span class="modality-status" id="vision-status" style="display:none">Idle</span>
                     </div>
 
                     <div class="card glass modality-card" id="audio-card">
                         <div class="card-header">
-                            <h3>🎙️ Audio</h3>
-                            <span class="modality-status" id="audio-status">Idle</span>
+                            <h3>🎙️ Audio — XGBoost</h3>
+                            <span class="modality-source-badge" id="audio-source-badge">Idle</span>
                         </div>
                         <div class="modality-metrics">
-                            <div class="metric"><span class="metric-label">Speech</span><span class="metric-value" id="metric-speech">—</span></div>
+                            <div class="metric"><span class="metric-label">Speech</span><span class="metric-value metric-highlight" id="metric-speech">—</span></div>
                             <div class="metric"><span class="metric-label">WPM</span><span class="metric-value" id="metric-wpm">—</span></div>
                             <div class="metric"><span class="metric-label">Fluency</span><span class="metric-value" id="metric-fluency">—</span></div>
                             <div class="metric"><span class="metric-label">Confidence</span><span class="metric-value" id="metric-audio-conf">—</span></div>
+                        </div>
+                        <div class="detection-details" id="audio-class-probs">
+                            <span class="detail-label">Class Probabilities:</span>
+                            <div class="class-prob-bars" id="audio-prob-bars"></div>
                         </div>
                         <div class="audio-viz" id="audio-visualizer"></div>
                     </div>
 
                     <div class="card glass modality-card" id="nlp-card">
                         <div class="card-header">
-                            <h3>📝 NLP</h3>
-                            <span class="modality-status" id="nlp-status">Idle</span>
+                            <h3>📝 NLP — DistilBERT</h3>
+                            <span class="modality-source-badge" id="nlp-source-badge">Idle</span>
                         </div>
                         <div class="modality-metrics">
-                            <div class="metric"><span class="metric-label">Task Type</span><span class="metric-value" id="metric-task-type">—</span></div>
+                            <div class="metric"><span class="metric-label">Task Type</span><span class="metric-value metric-highlight" id="metric-task-type">—</span></div>
                             <div class="metric"><span class="metric-label">Demand</span><span class="metric-value" id="metric-demand">—</span></div>
                             <div class="metric"><span class="metric-label">Confidence</span><span class="metric-value" id="metric-nlp-conf">—</span></div>
+                        </div>
+                        <div class="detection-details" id="nlp-class-probs">
+                            <span class="detail-label">Class Probabilities:</span>
+                            <div class="class-prob-bars" id="nlp-prob-bars"></div>
+                        </div>
+                    </div>
+
+                    <div class="card glass modality-card" id="meta-card">
+                        <div class="card-header">
+                            <h3>🔀 Meta — Random Forest</h3>
+                            <span class="modality-source-badge" id="meta-source-badge">Idle</span>
+                        </div>
+                        <div class="modality-metrics">
+                            <div class="metric"><span class="metric-label">Flow State</span><span class="metric-value metric-highlight" id="metric-meta-flow">—</span></div>
+                            <div class="metric"><span class="metric-label">Confidence</span><span class="metric-value" id="metric-meta-conf">—</span></div>
+                        </div>
+                        <div class="detection-details" id="meta-class-probs">
+                            <span class="detail-label">Flow Probabilities:</span>
+                            <div class="class-prob-bars" id="meta-prob-bars"></div>
                         </div>
                     </div>
 
@@ -407,12 +436,12 @@
     <div id="toast-container" class="toast-container"></div>
 
     <!-- Scripts -->
-    <script src="js/user_profile.js?v=2"></script>
-    <script src="js/audio_extractor.js?v=2"></script>
-    <script src="js/vision_preprocessor.js?v=2"></script>
-    <script src="js/nlp_tokenizer.js?v=2"></script>
-    <script src="js/inference_pipeline.js?v=2"></script>
-    <script src="js/ani_guardian.js?v=2"></script>
-    <script src="js/ui_controller.js?v=2"></script>
+    <script src="js/user_profile.js?v=5"></script>
+    <script src="js/audio_extractor.js?v=5"></script>
+    <script src="js/vision_preprocessor.js?v=5"></script>
+    <script src="js/nlp_tokenizer.js?v=5"></script>
+    <script src="js/inference_pipeline.js?v=5"></script>
+    <script src="js/ani_guardian.js?v=5"></script>
+    <script src="js/ui_controller.js?v=5"></script>
 </body>
 </html>

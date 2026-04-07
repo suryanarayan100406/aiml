@@ -1,116 +1,259 @@
 /**
  * ANI Flow Data Collector — Background Service Worker
- * Counts open tabs every 30 minutes and logs data for meta-classifier training.
+ * Automatically analyzes ALL open Chrome tabs every 5 seconds.
+ * Classifies each tab, computes productivity score, and pushes
+ * the analysis to the ANI dashboard in real-time.
+ *
+ * NO manual self-reports. Fully automated.
  */
 
-const ALARM_NAME = 'ani_data_collection';
-const COLLECTION_INTERVAL_MINUTES = 30;
+// ─── Configuration ────────────────────────────────────────────
+const PUSH_INTERVAL_MS = 5000; // Push tab analysis every 5 seconds
+const SWITCH_WINDOW_MS = 60000; // Track switches in last 60 seconds
 
-// ─── Alarm Setup ──────────────────────────────────────────────
-chrome.runtime.onInstalled.addListener(() => {
-    chrome.alarms.create(ALARM_NAME, {
-        delayInMinutes: 1,
-        periodInMinutes: COLLECTION_INTERVAL_MINUTES,
-    });
-    console.log(`[ANI] Data collection alarm set: every ${COLLECTION_INTERVAL_MINUTES} minutes`);
-});
+// ─── State ────────────────────────────────────────────────────
+let lastActiveTabId = null;
+let tabSwitches = []; // timestamps of recent tab switches
 
-// ─── Alarm Handler ────────────────────────────────────────────
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-    if (alarm.name !== ALARM_NAME) return;
+// ─── Domain Classification Database ──────────────────────────
+const DOMAIN_RULES = {
+    productive: [
+        'github.com', 'gitlab.com', 'bitbucket.org',
+        'stackoverflow.com', 'stackexchange.com',
+        'docs.google.com', 'sheets.google.com', 'slides.google.com',
+        'notion.so', 'figma.com', 'canva.com',
+        'linear.app', 'jira.atlassian.net', 'trello.com', 'asana.com',
+        'vscode.dev', 'codepen.io', 'codesandbox.io', 'replit.com',
+        'kaggle.com', 'colab.research.google.com',
+        'aws.amazon.com', 'console.cloud.google.com', 'portal.azure.com',
+        'vercel.com', 'netlify.com', 'heroku.com',
+        'medium.com', 'dev.to', 'hashnode.dev',
+        'arxiv.org', 'scholar.google.com', 'researchgate.net',
+        'udemy.com', 'coursera.org', 'edx.org', 'khanacademy.org',
+        'w3schools.com', 'mdn.mozilla.org', 'developer.mozilla.org',
+        'npmjs.com', 'pypi.org', 'crates.io',
+        'localhost', '127.0.0.1',
+    ],
+    distraction: [
+        'youtube.com', 'twitch.tv', 'netflix.com', 'primevideo.com',
+        'facebook.com', 'instagram.com', 'tiktok.com', 'snapchat.com',
+        'twitter.com', 'x.com', 'threads.net',
+        'reddit.com', '9gag.com', 'imgur.com',
+        'amazon.com', 'flipkart.com', 'ebay.com', 'etsy.com',
+        'myntra.com', 'ajio.com', 'meesho.com',
+        'buzzfeed.com', 'boredpanda.com',
+        'play.google.com', 'store.steampowered.com',
+        'spotify.com', 'music.apple.com', 'soundcloud.com',
+        'pinterest.com', 'tumblr.com',
+    ],
+    communication: [
+        'mail.google.com', 'outlook.com', 'outlook.office.com',
+        'yahoo.com', 'protonmail.com',
+        'slack.com', 'app.slack.com',
+        'teams.microsoft.com', 'discord.com', 'discord.gg',
+        'web.whatsapp.com', 'web.telegram.org', 'signal.org',
+        'zoom.us', 'meet.google.com',
+        'chat.google.com', 'messages.google.com',
+        'linkedin.com',
+    ],
+    news: [
+        'news.ycombinator.com', 'bbc.com', 'cnn.com', 'nytimes.com',
+        'theguardian.com', 'reuters.com', 'apnews.com',
+        'techcrunch.com', 'theverge.com', 'wired.com', 'arstechnica.com',
+        'ndtv.com', 'timesofindia.indiatimes.com', 'thehindu.com',
+        'news.google.com',
+    ],
+};
 
-    try {
-        const data = await collectData();
-        await storeDataPoint(data);
-
-        // Notify popup if open
-        chrome.runtime.sendMessage({
-            type: 'DATA_COLLECTED',
-            data: data,
-        }).catch(() => {}); // Popup may not be open
-
-        console.log('[ANI] Data point collected:', data);
-    } catch (err) {
-        console.error('[ANI] Collection error:', err);
+// ─── Classify a domain ────────────────────────────────────────
+function classifyDomain(domain) {
+    if (!domain) return 'neutral';
+    const d = domain.toLowerCase();
+    for (const [category, domains] of Object.entries(DOMAIN_RULES)) {
+        if (domains.some(rule => d.includes(rule))) return category;
     }
-});
+    // Heuristic: if domain contains common productive keywords
+    if (d.includes('docs') || d.includes('wiki') || d.includes('api') || d.includes('dashboard')) {
+        return 'productive';
+    }
+    return 'neutral';
+}
 
-// ─── Data Collection ──────────────────────────────────────────
-async function collectData() {
-    // Count open tabs
+// ─── Classify tab title for extra context ─────────────────────
+function classifyTitle(title) {
+    if (!title) return null;
+    const t = title.toLowerCase();
+    // Override domain classification based on title content
+    if (t.includes('game') || t.includes('play') || t.includes('watch')) return 'distraction';
+    if (t.includes('email') || t.includes('inbox') || t.includes('compose')) return 'communication';
+    if (t.includes('code') || t.includes('debug') || t.includes('pull request') || t.includes('commit')) return 'productive';
+    return null; // No title-based override
+}
+
+// ─── Full Tab Analysis ────────────────────────────────────────
+async function analyzeAllTabs() {
     const tabs = await chrome.tabs.query({});
-    const tabCount = tabs.length;
-
-    // Get active tab info
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const activeTitle = activeTab?.title || 'Unknown';
-    const activeUrl = activeTab?.url || '';
 
-    // Classify the active tab domain
-    const domain = activeUrl ? new URL(activeUrl).hostname : '';
-    const tabCategory = classifyDomain(domain);
+    const categories = { productive: 0, distraction: 0, communication: 0, news: 0, neutral: 0 };
+    const domains = new Set();
+    const tabDetails = [];
 
-    // Compute tab diversity (unique domains)
-    const domains = new Set(tabs.map(t => {
-        try { return new URL(t.url).hostname; } catch { return ''; }
-    }).filter(Boolean));
+    for (const tab of tabs) {
+        let domain = '';
+        try { domain = new URL(tab.url).hostname; } catch { domain = ''; }
+        domains.add(domain);
+
+        // Classify by domain first, then override by title if stronger signal
+        let category = classifyDomain(domain);
+        const titleCategory = classifyTitle(tab.title);
+        if (titleCategory) category = titleCategory;
+
+        categories[category] = (categories[category] || 0) + 1;
+
+        tabDetails.push({
+            id: tab.id,
+            title: (tab.title || '').substring(0, 120),
+            domain: domain,
+            category: category,
+            active: tab.id === activeTab?.id,
+            audible: tab.audible || false,
+            pinned: tab.pinned || false,
+        });
+    }
+
+    // Compute productivity score (0 to 1)
+    const total = tabs.length || 1;
+    const productivityScore = categories.productive / total;
+    const distractionScore = (categories.distraction + categories.news * 0.5) / total;
+
+    // Tab switch rate (switches in last minute)
+    const now = Date.now();
+    tabSwitches = tabSwitches.filter(ts => now - ts < SWITCH_WINDOW_MS);
+    const switchRate = tabSwitches.length;
+
+    // Active tab info
+    let activeDomain = '';
+    try { activeDomain = new URL(activeTab?.url || '').hostname; } catch {}
+    const activeCategory = classifyDomain(activeDomain);
 
     return {
-        timestamp: new Date().toISOString(),
-        tabCount: tabCount,
+        tabCount: tabs.length,
         uniqueDomains: domains.size,
-        activeTitle: activeTitle.substring(0, 100),
-        activeDomain: domain,
-        tabCategory: tabCategory,
-        tabCountNorm: Math.min(tabCount / 30, 1.0),
+        tabs: tabDetails,
+        activeTab: {
+            title: (activeTab?.title || 'Unknown').substring(0, 120),
+            domain: activeDomain,
+            category: activeCategory,
+            url: activeTab?.url || '',
+        },
+        categories: categories,
+        productivityScore: Math.round(productivityScore * 100) / 100,
+        distractionScore: Math.round(distractionScore * 100) / 100,
+        switchRate: switchRate,
+        tabCountNorm: Math.min(tabs.length / 30, 1.0),
+        extensionConnected: true,
+        timestamp: Date.now(),
     };
 }
 
-// ─── Domain Classification ────────────────────────────────────
-function classifyDomain(domain) {
-    const categories = {
-        work: ['github.com', 'gitlab.com', 'stackoverflow.com', 'docs.google.com',
-               'notion.so', 'figma.com', 'linear.app', 'jira.atlassian.net',
-               'slack.com', 'teams.microsoft.com', 'vscode.dev'],
-        social: ['twitter.com', 'x.com', 'facebook.com', 'instagram.com',
-                 'reddit.com', 'tiktok.com', 'youtube.com', 'twitch.tv'],
-        news: ['news.ycombinator.com', 'bbc.com', 'cnn.com', 'nytimes.com',
-               'techcrunch.com', 'theverge.com'],
-        shopping: ['amazon.com', 'ebay.com', 'etsy.com'],
-        email: ['mail.google.com', 'outlook.com', 'yahoo.com'],
-    };
+// ─── Push Analysis to ANI Dashboard ───────────────────────────
+async function pushAnalysis() {
+    try {
+        const analysis = await analyzeAllTabs();
 
-    for (const [category, domains] of Object.entries(categories)) {
-        if (domains.some(d => domain.includes(d))) return category;
+        // Store data point for history
+        await storeDataPoint(analysis);
+
+        // Send to ALL tabs — content script will forward to ANI frontend
+        const tabs = await chrome.tabs.query({});
+        for (const tab of tabs) {
+            try {
+                chrome.tabs.sendMessage(tab.id, {
+                    type: 'TAB_DATA_UPDATE',
+                    data: analysis
+                }).catch(() => {});
+            } catch {}
+        }
+
+        // Also notify popup if open
+        chrome.runtime.sendMessage({
+            type: 'ANALYSIS_UPDATE',
+            data: analysis,
+        }).catch(() => {});
+
+    } catch (err) {
+        console.error('[ANI] Analysis error:', err);
     }
-    return 'other';
 }
+
+// ─── Track Tab Switches ───────────────────────────────────────
+chrome.tabs.onActivated.addListener((activeInfo) => {
+    if (lastActiveTabId !== null && lastActiveTabId !== activeInfo.tabId) {
+        tabSwitches.push(Date.now());
+    }
+    lastActiveTabId = activeInfo.tabId;
+    // Push immediately on tab switch
+    pushAnalysis();
+});
+
+// Also push on tab create/remove
+chrome.tabs.onCreated.addListener(() => pushAnalysis());
+chrome.tabs.onRemoved.addListener(() => setTimeout(pushAnalysis, 500));
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.status === 'complete') pushAnalysis();
+});
+
+// ─── Periodic Push ────────────────────────────────────────────
+// Use setInterval for 5-second pushes (chrome.alarms min is 1 minute)
+setInterval(pushAnalysis, PUSH_INTERVAL_MS);
+
+// Initial push on startup
+chrome.runtime.onInstalled.addListener(() => {
+    console.log('[ANI] Extension installed — starting automatic tab analysis');
+    pushAnalysis();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+    console.log('[ANI] Extension started — resuming tab analysis');
+    pushAnalysis();
+});
 
 // ─── Storage ──────────────────────────────────────────────────
 async function storeDataPoint(data) {
-    const result = await chrome.storage.local.get('dataPoints');
-    const points = result.dataPoints || [];
-    points.push(data);
+    try {
+        const result = await chrome.storage.local.get('dataPoints');
+        const points = result.dataPoints || [];
+        // Store compact version (no full tab list)
+        points.push({
+            timestamp: data.timestamp,
+            tabCount: data.tabCount,
+            uniqueDomains: data.uniqueDomains,
+            categories: data.categories,
+            productivityScore: data.productivityScore,
+            distractionScore: data.distractionScore,
+            switchRate: data.switchRate,
+            activeCategory: data.activeTab?.category,
+            activeTitle: data.activeTab?.title?.substring(0, 60),
+        });
 
-    // Keep last 2000 data points (~40 days at 30-min intervals)
-    if (points.length > 2000) points.splice(0, points.length - 2000);
-
-    await chrome.storage.local.set({ dataPoints: points });
+        // Keep last 5000 points (~7 hours at 5-sec intervals)
+        if (points.length > 5000) points.splice(0, points.length - 5000);
+        await chrome.storage.local.set({ dataPoints: points });
+    } catch (e) {
+        // Storage might fail silently
+    }
 }
 
 // ─── Message Handler ──────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.type === 'GET_TAB_COUNT') {
-        chrome.tabs.query({}).then(tabs => {
-            sendResponse({ tabCount: tabs.length });
-        });
-        return true; // Async response
+    if (msg.type === 'GET_TAB_DATA' || msg.type === 'GET_ANALYSIS') {
+        analyzeAllTabs().then(data => sendResponse(data));
+        return true;
     }
 
-    if (msg.type === 'GET_TAB_DATA') {
-        getFullTabData().then(data => {
-            sendResponse(data);
-        });
+    if (msg.type === 'GET_TAB_COUNT') {
+        chrome.tabs.query({}).then(tabs => sendResponse({ tabCount: tabs.length }));
         return true;
     }
 
@@ -121,76 +264,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return true;
     }
 
-    if (msg.type === 'SAVE_SELF_REPORT') {
-        storeDataPoint({
-            ...msg.data,
-            timestamp: new Date().toISOString(),
-            type: 'self_report',
-        }).then(() => sendResponse({ ok: true }));
-        return true;
-    }
-
     if (msg.type === 'CLEAR_DATA') {
-        chrome.storage.local.set({ dataPoints: [] }).then(() => {
-            sendResponse({ ok: true });
-        });
+        chrome.storage.local.set({ dataPoints: [] }).then(() => sendResponse({ ok: true }));
         return true;
     }
 });
-
-// ─── Full Tab Data for Frontend ───────────────────────────────
-async function getFullTabData() {
-    const tabs = await chrome.tabs.query({});
-    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-    // Categorize all tabs
-    let workTabs = 0, socialTabs = 0, entertainmentTabs = 0, otherTabs = 0;
-    const domains = new Set();
-
-    tabs.forEach(tab => {
-        try {
-            const domain = new URL(tab.url).hostname;
-            domains.add(domain);
-            const cat = classifyDomain(domain);
-            if (cat === 'work' || cat === 'email') workTabs++;
-            else if (cat === 'social') socialTabs++;
-            else if (cat === 'news' || cat === 'shopping') entertainmentTabs++;
-            else otherTabs++;
-        } catch { otherTabs++; }
-    });
-
-    return {
-        tabCount: tabs.length,
-        uniqueDomains: domains.size,
-        workTabs,
-        socialTabs,
-        entertainmentTabs,
-        otherTabs,
-        activeTitle: activeTab?.title || 'Unknown',
-        activeDomain: activeTab?.url ? new URL(activeTab.url).hostname : '',
-        activeCategory: activeTab?.url ? classifyDomain(new URL(activeTab.url).hostname) : 'other',
-        distractionTabs: socialTabs + entertainmentTabs,
-        tabCountNorm: Math.min(tabs.length / 30, 1.0),
-        timestamp: Date.now(),
-        extensionConnected: true,
-    };
-}
-
-// ─── Proactive Tab Change Push ────────────────────────────────
-// Push tab updates to all ANI dashboard tabs when tabs change
-async function pushTabUpdate() {
-    const data = await getFullTabData();
-    // Send to all tabs — content script will filter
-    const tabs = await chrome.tabs.query({});
-    for (const tab of tabs) {
-        try {
-            chrome.tabs.sendMessage(tab.id, { type: 'TAB_DATA_UPDATE', data }).catch(() => {});
-        } catch {}
-    }
-}
-
-// Listen for tab events
-chrome.tabs.onCreated.addListener(pushTabUpdate);
-chrome.tabs.onRemoved.addListener(pushTabUpdate);
-chrome.tabs.onActivated.addListener(pushTabUpdate);
-

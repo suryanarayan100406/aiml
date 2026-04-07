@@ -2,113 +2,223 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ANI Flow Collector</title>
+    <title>ANI Tab Analyzer</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            width: 320px;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: #0f0f18;
+            width: 380px;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0a0a12;
             color: #f0f0f5;
-            padding: 16px;
+            padding: 0;
+            overflow-x: hidden;
         }
-        h2 {
-            font-size: 1rem;
-            font-weight: 700;
+
+        /* ─── Header ─────────────────────────────────── */
+        .header {
+            padding: 16px 18px 12px;
+            background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(6,182,212,0.08));
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .header-top { display: flex; align-items: center; justify-content: space-between; }
+        .logo { display: flex; align-items: center; gap: 8px; }
+        .logo-icon { font-size: 1.3rem; }
+        .logo-text {
+            font-size: 1rem; font-weight: 800;
             background: linear-gradient(135deg, #8B5CF6, #06B6D4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 12px;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 16px;
+        .connection-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #10B981; box-shadow: 0 0 8px rgba(16,185,129,0.5);
+            animation: pulse 2s ease-in-out infinite;
         }
-        .stat {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 8px;
-            padding: 10px;
+        .connection-dot.disconnected { background: #EF4444; box-shadow: 0 0 8px rgba(239,68,68,0.5); }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .subtitle { font-size: 0.65rem; color: #9ca3af; margin-top: 4px; letter-spacing: 0.03em; }
+
+        /* ─── Productivity Meter ──────────────────────── */
+        .meter-section { padding: 14px 18px; }
+        .meter-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+        .meter-label { font-size: 0.7rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
+        .meter-value { font-size: 1.4rem; font-weight: 800; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+        .meter-value.high { color: #10B981; }
+        .meter-value.medium { color: #F59E0B; }
+        .meter-value.low { color: #EF4444; }
+        .meter-bar {
+            height: 6px; background: rgba(255,255,255,0.06);
+            border-radius: 3px; overflow: hidden;
         }
-        .stat-label { font-size: 0.65rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
-        .stat-value { font-size: 1.2rem; font-weight: 700; margin-top: 2px; }
-        .section { margin-bottom: 14px; }
-        .section-title { font-size: 0.75rem; font-weight: 600; color: #9ca3af; margin-bottom: 8px; }
-        label { font-size: 0.8rem; display: block; margin-bottom: 4px; color: #d1d5db; }
-        .focus-buttons { display: flex; gap: 6px; margin-bottom: 10px; }
-        .focus-btn {
-            flex: 1; padding: 8px 4px; border: 1px solid rgba(255,255,255,0.1);
-            background: rgba(255,255,255,0.03); color: #d1d5db;
-            border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;
+        .meter-fill {
+            height: 100%; border-radius: 3px;
+            transition: width 0.5s ease, background 0.5s ease;
+        }
+        .meter-fill.high { background: linear-gradient(90deg, #10B981, #34D399); }
+        .meter-fill.medium { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
+        .meter-fill.low { background: linear-gradient(90deg, #EF4444, #F87171); }
+
+        /* ─── Stats Grid ─────────────────────────────── */
+        .stats-grid {
+            display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 6px; padding: 0 18px 14px;
+        }
+        .stat-box {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px; padding: 8px 6px; text-align: center;
+        }
+        .stat-num { font-size: 1.1rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .stat-num.productive { color: #10B981; }
+        .stat-num.distraction { color: #EF4444; }
+        .stat-num.communication { color: #06B6D4; }
+        .stat-num.neutral { color: #9ca3af; }
+        .stat-lbl { font-size: 0.55rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+
+        /* ─── Active Tab ─────────────────────────────── */
+        .active-tab-section {
+            padding: 12px 18px; margin: 0 12px 10px;
+            background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.12);
+            border-radius: 10px;
+        }
+        .active-tab-label { font-size: 0.6rem; font-weight: 600; color: #8B5CF6; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+        .active-tab-title { font-size: 0.8rem; font-weight: 600; color: #e0e0e8; line-height: 1.4; word-break: break-word; }
+        .active-tab-meta { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
+        .active-tab-domain { font-size: 0.65rem; color: #9ca3af; }
+        .category-badge {
+            font-size: 0.55rem; font-weight: 700; padding: 2px 8px;
+            border-radius: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .badge-productive { background: rgba(16,185,129,0.15); color: #10B981; }
+        .badge-distraction { background: rgba(239,68,68,0.15); color: #EF4444; }
+        .badge-communication { background: rgba(6,182,212,0.15); color: #06B6D4; }
+        .badge-news { background: rgba(245,158,11,0.15); color: #F59E0B; }
+        .badge-neutral { background: rgba(255,255,255,0.06); color: #9ca3af; }
+
+        /* ─── Tab List ───────────────────────────────── */
+        .tab-list-section { padding: 0 18px 12px; }
+        .tab-list-header {
+            font-size: 0.65rem; font-weight: 600; color: #6b7280;
+            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .tab-list {
+            max-height: 180px; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 3px;
+        }
+        .tab-item {
+            display: grid; grid-template-columns: 6px 1fr auto;
+            align-items: center; gap: 8px; padding: 5px 8px;
+            border-radius: 6px; background: rgba(255,255,255,0.02);
+            font-size: 0.72rem; transition: background 0.15s;
+        }
+        .tab-item:hover { background: rgba(255,255,255,0.05); }
+        .tab-item.active-row { background: rgba(139,92,246,0.08); border-left: 2px solid #8B5CF6; }
+        .tab-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .tab-dot.productive { background: #10B981; }
+        .tab-dot.distraction { background: #EF4444; }
+        .tab-dot.communication { background: #06B6D4; }
+        .tab-dot.news { background: #F59E0B; }
+        .tab-dot.neutral { background: #6b7280; }
+        .tab-title-text {
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            color: #d1d5db;
+        }
+        .tab-domain-text { font-size: 0.6rem; color: #6b7280; white-space: nowrap; }
+
+        /* ─── Footer ─────────────────────────────────── */
+        .footer {
+            padding: 10px 18px; border-top: 1px solid rgba(255,255,255,0.04);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .switch-rate { font-size: 0.65rem; color: #6b7280; }
+        .switch-rate span { color: #F59E0B; font-weight: 700; font-family: monospace; }
+        .btn-clear {
+            font-size: 0.6rem; padding: 4px 10px; border: 1px solid rgba(255,255,255,0.08);
+            background: transparent; color: #6b7280; border-radius: 6px; cursor: pointer;
             transition: all 0.15s;
         }
-        .focus-btn:hover { background: rgba(139,92,246,0.15); border-color: #8B5CF6; }
-        .focus-btn.selected { background: rgba(139,92,246,0.25); border-color: #8B5CF6; color: #fff; }
-        textarea {
-            width: 100%; padding: 8px; background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;
-            color: #f0f0f5; font-family: inherit; font-size: 0.8rem; resize: none;
-        }
-        textarea:focus { outline: none; border-color: #8B5CF6; }
-        .btn {
-            width: 100%; padding: 10px; border: none; border-radius: 8px;
-            font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 8px;
-            transition: all 0.15s;
-        }
-        .btn-primary { background: linear-gradient(135deg, #8B5CF6, #06B6D4); color: white; }
-        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(139,92,246,0.3); }
-        .btn-outline {
-            background: transparent; color: #9ca3af;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .btn-outline:hover { background: rgba(255,255,255,0.05); }
-        .btn-danger { background: rgba(239,68,68,0.15); color: #EF4444; border: 1px solid rgba(239,68,68,0.2); }
-        .toast { font-size: 0.75rem; color: #10B981; text-align: center; margin-top: 8px; display: none; }
+        .btn-clear:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); color: #EF4444; }
+
+        /* ─── Scrollbar ──────────────────────────────── */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+        /* ─── Separator ──────────────────────────────── */
+        .separator { height: 1px; background: rgba(255,255,255,0.04); margin: 0 18px; }
     </style>
 </head>
 <body>
-    <h2>🧠 ANI Flow Collector</h2>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-top">
+            <div class="logo">
+                <span class="logo-icon">🧠</span>
+                <span class="logo-text">ANI Tab Analyzer</span>
+            </div>
+            <div class="connection-dot" id="conn-dot" title="Connected to ANI Dashboard"></div>
+        </div>
+        <div class="subtitle">Automatic productivity tracking • <span id="tab-count-label">0</span> tabs open</div>
+    </div>
 
-    <div class="stats">
-        <div class="stat">
-            <div class="stat-label">Data Points</div>
-            <div class="stat-value" id="stat-total">—</div>
+    <!-- Productivity Meter -->
+    <div class="meter-section">
+        <div class="meter-header">
+            <span class="meter-label">Productivity Score</span>
+            <span class="meter-value high" id="productivity-value">—</span>
         </div>
-        <div class="stat">
-            <div class="stat-label">Avg Tabs</div>
-            <div class="stat-value" id="stat-tabs">—</div>
-        </div>
-        <div class="stat">
-            <div class="stat-label">Self Reports</div>
-            <div class="stat-value" id="stat-reports">—</div>
-        </div>
-        <div class="stat">
-            <div class="stat-label">Avg Focus</div>
-            <div class="stat-value" id="stat-focus">—</div>
+        <div class="meter-bar">
+            <div class="meter-fill high" id="productivity-bar" style="width: 0%"></div>
         </div>
     </div>
 
-    <div class="section">
-        <div class="section-title">How focused are you right now?</div>
-        <div class="focus-buttons">
-            <button class="focus-btn" data-score="1">1</button>
-            <button class="focus-btn" data-score="2">2</button>
-            <button class="focus-btn" data-score="3">3</button>
-            <button class="focus-btn" data-score="4">4</button>
-            <button class="focus-btn" data-score="5">5</button>
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-box">
+            <div class="stat-num productive" id="count-productive">0</div>
+            <div class="stat-lbl">Productive</div>
         </div>
-        <label>What are you working on?</label>
-        <textarea id="task-input" rows="2" placeholder="e.g., Debugging auth module..."></textarea>
-        <button class="btn btn-primary" id="btn-submit">Submit Report</button>
-        <div class="toast" id="toast">✅ Report saved!</div>
+        <div class="stat-box">
+            <div class="stat-num distraction" id="count-distraction">0</div>
+            <div class="stat-lbl">Distraction</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-num communication" id="count-communication">0</div>
+            <div class="stat-lbl">Comms</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-num neutral" id="count-neutral">0</div>
+            <div class="stat-lbl">Other</div>
+        </div>
     </div>
 
-    <button class="btn btn-outline" id="btn-export">📥 Export CSV</button>
-    <button class="btn btn-danger" id="btn-clear" style="margin-top:6px">🗑️ Clear Data</button>
+    <div class="separator"></div>
 
-    <script src="data_logger.js"></script>
+    <!-- Active Tab -->
+    <div class="active-tab-section">
+        <div class="active-tab-label">▶ Currently Viewing</div>
+        <div class="active-tab-title" id="active-title">Loading...</div>
+        <div class="active-tab-meta">
+            <span class="active-tab-domain" id="active-domain"></span>
+            <span class="category-badge badge-neutral" id="active-badge">—</span>
+        </div>
+    </div>
+
+    <!-- Tab List -->
+    <div class="tab-list-section">
+        <div class="tab-list-header">
+            <span>All Tabs</span>
+            <span id="unique-domains">0 domains</span>
+        </div>
+        <div class="tab-list" id="tab-list"></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="switch-rate">Tab switches/min: <span id="switch-rate">0</span></div>
+        <button class="btn-clear" id="btn-clear" title="Clear stored history">🗑️ Clear</button>
+    </div>
+
     <script src="popup.js"></script>
 </body>
 </html>

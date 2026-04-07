@@ -428,44 +428,161 @@
             if (vals[i]) vals[i].textContent = `${(prob * 100).toFixed(0)}%`;
         });
 
-        // Vision metrics + data source badge
+        // ─── VISION CARD ─────────────────────────────────────
         if (result.vision) {
             $('#metric-tabs').textContent = result.vision.tabCount;
             $('#metric-phone').textContent = result.vision.phoneVisible;
             $('#metric-distractions').textContent = result.vision.distractions;
             $('#metric-focus').textContent = result.vision.focusRatio;
-            const vs = $('#vision-status');
-            if (vs) {
-                const src = result.vision.source || 'simulated';
-                if (src === 'webcam' || src === 'yolo-webcam') { vs.textContent = 'Webcam'; vs.style.cssText = 'color:#10B981'; }
-                else if (src === 'extension') { vs.textContent = 'Extension'; vs.style.cssText = 'color:#10B981'; }
-                else if (src === 'screen-capture') { vs.textContent = 'Screen'; vs.style.cssText = 'color:#06B6D4'; }
-                else if (src === 'webcam-heuristic') { vs.textContent = 'Webcam*'; vs.style.cssText = 'color:#06B6D4'; }
-                else { vs.textContent = 'Simulated'; vs.style.cssText = 'color:#F59E0B'; }
+
+            // Phone highlight color
+            const phoneEl = $('#metric-phone');
+            if (phoneEl) {
+                if (result.vision.phoneVisible === 'Yes') {
+                    phoneEl.style.color = '#EF4444';
+                    phoneEl.textContent = '📱 Yes';
+                } else {
+                    phoneEl.style.color = '#10B981';
+                    phoneEl.textContent = '✅ No';
+                }
+            }
+
+            // Source badge
+            updateSourceBadge('vision-source-badge', result.vision.source);
+
+            // YOLO detection list + Extension tab analysis
+            const detList = $('#yolo-detection-list');
+            if (detList) {
+                let html = '';
+
+                // Extension tab categories
+                if (result.vision.extensionConnected && result.vision.tabCategories) {
+                    const cats = result.vision.tabCategories;
+                    const catEmojis = { productive: '✅', distraction: '⚠️', communication: '💬', news: '📰', neutral: '📄' };
+                    const catColors = { productive: '#10B981', distraction: '#EF4444', communication: '#06B6D4', news: '#F59E0B', neutral: '#6b7280' };
+                    const total = result.vision.tabCount || 1;
+
+                    html += '<span class="detail-label" style="margin-top:0;">Tab Categories:</span>';
+                    for (const [cat, count] of Object.entries(cats)) {
+                        if (count === 0) continue;
+                        const pct = ((count / total) * 100).toFixed(0);
+                        html += `<div class="det-item">
+                            <span class="det-icon">${catEmojis[cat] || '📄'}</span>
+                            <span class="det-name">${cat}</span>
+                            <span class="det-conf" style="color:${catColors[cat]}">${count}</span>
+                            <div class="det-conf-bar"><div class="det-conf-fill" style="width:${pct}%;background:${catColors[cat]}"></div></div>
+                        </div>`;
+                    }
+
+                    // Active tab
+                    if (result.vision.activeTabTitle) {
+                        html += `<div style="margin-top:6px;padding:5px 8px;background:rgba(139,92,246,0.06);border-radius:6px;border:1px solid rgba(139,92,246,0.1);">
+                            <span style="font-size:0.6rem;color:#8B5CF6;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">▶ Active:</span>
+                            <span style="font-size:0.7rem;color:#e0e0e8;margin-left:4px;">${result.vision.activeTabTitle.substring(0, 50)}</span>
+                        </div>`;
+                    }
+
+                    // Switch rate
+                    if (result.vision.switchRate > 0) {
+                        html += `<div style="font-size:0.65rem;color:#6b7280;margin-top:4px;">Tab switches/min: <span style="color:#F59E0B;font-weight:700;">${result.vision.switchRate}</span></div>`;
+                    }
+                }
+
+                // YOLO detections (from webcam)
+                const dets = result.vision.detections || [];
+                if (dets.length > 0) {
+                    html += '<span class="detail-label" style="margin-top:8px;">YOLO Detections:</span>';
+                    const detEmojis = { phone: '📱', monitor: '🖥️', work_tool: '⌨️', distraction: '⚠️' };
+                    html += dets.map(d =>
+                        `<div class="det-item">
+                            <span class="det-icon">${detEmojis[d.className] || '🔍'}</span>
+                            <span class="det-name">${d.className}</span>
+                            <span class="det-conf">${(d.confidence * 100).toFixed(0)}%</span>
+                            <div class="det-conf-bar"><div class="det-conf-fill" style="width:${d.confidence * 100}%"></div></div>
+                        </div>`
+                    ).join('');
+                } else if (!result.vision.extensionConnected) {
+                    html += '<span class="empty-det">Install Chrome extension for tab analysis</span>';
+                }
+
+                detList.innerHTML = html;
             }
         }
 
-        // Audio metrics + data source badge
+        // ─── AUDIO CARD ──────────────────────────────────────
         if (result.audio) {
             $('#metric-speech').textContent = result.audio.speechClass;
             $('#metric-wpm').textContent = result.audio.wpm;
             $('#metric-fluency').textContent = result.audio.fluency;
             $('#metric-audio-conf').textContent = result.audio.confidence;
-            const as = $('#audio-status');
-            if (as) {
-                const src = result.audio.source || 'simulated';
-                if (src === 'microphone') { as.textContent = 'Microphone'; as.style.cssText = 'color:#10B981'; }
-                else { as.textContent = 'Simulated'; as.style.cssText = 'color:#F59E0B'; }
+
+            // Source badge
+            updateSourceBadge('audio-source-badge', result.audio.source);
+
+            // Class probability bars
+            const audioProbs = result.audio.classProbs;
+            const audioProbContainer = $('#audio-prob-bars');
+            if (audioProbContainer && audioProbs) {
+                const audioClasses = ['Erratic', 'Slow', 'Normal', 'Fast', 'Rapid'];
+                audioProbContainer.innerHTML = audioProbs.map((p, i) => `
+                    <div class="class-prob-row ${i === result.audio.features.speech_class ? 'active' : ''}">
+                        <span class="cp-name">${audioClasses[i]}</span>
+                        <div class="cp-bar"><div class="cp-fill" style="width:${p * 100}%"></div></div>
+                        <span class="cp-val">${(p * 100).toFixed(0)}%</span>
+                    </div>
+                `).join('');
+            } else if (audioProbContainer) {
+                audioProbContainer.innerHTML = '<span class="empty-det">Enable mic to see probabilities</span>';
             }
         }
 
-        // NLP metrics
+        // ─── NLP CARD ────────────────────────────────────────
         if (result.nlp) {
             $('#metric-task-type').textContent = result.nlp.taskType;
             $('#metric-demand').textContent = result.nlp.demand;
             $('#metric-nlp-conf').textContent = result.nlp.confidence;
-            const ns = $('#nlp-status');
-            if (ns) { ns.textContent = 'Active'; ns.style.cssText = 'color:#10B981'; }
+
+            // Source badge
+            updateSourceBadge('nlp-source-badge', result.nlp.source);
+
+            // Class probability bars
+            const nlpProbs = result.nlp.classProbs;
+            const nlpProbContainer = $('#nlp-prob-bars');
+            if (nlpProbContainer && nlpProbs) {
+                const nlpClasses = ['Deep Work', 'Shallow', 'Creative', 'Admin', 'Comms'];
+                nlpProbContainer.innerHTML = nlpProbs.map((p, i) => `
+                    <div class="class-prob-row ${i === result.nlp.features.task_class ? 'active' : ''}">
+                        <span class="cp-name">${nlpClasses[i]}</span>
+                        <div class="cp-bar"><div class="cp-fill" style="width:${p * 100}%"></div></div>
+                        <span class="cp-val">${(p * 100).toFixed(0)}%</span>
+                    </div>
+                `).join('');
+            } else if (nlpProbContainer) {
+                nlpProbContainer.innerHTML = '<span class="empty-det">No NLP probabilities</span>';
+            }
+        }
+
+        // ─── META CARD ───────────────────────────────────────
+        if (result.meta) {
+            $('#metric-meta-flow').textContent = result.meta.flowState || result.flowLabel;
+            $('#metric-meta-conf').textContent = `${(result.confidence * 100).toFixed(0)}%`;
+
+            // Source badge
+            updateSourceBadge('meta-source-badge', result.meta.source);
+
+            // Flow probability bars
+            const metaProbContainer = $('#meta-prob-bars');
+            if (metaProbContainer && result.meta.classProbs) {
+                const flowNames = ['Pseudo', 'Switch', 'Distracted', 'Soft Flow', 'Deep Flow'];
+                const flowEmojis = ['🔴', '🟠', '🟡', '🟢', '🟣'];
+                metaProbContainer.innerHTML = result.meta.classProbs.map((p, i) => `
+                    <div class="class-prob-row ${i === result.flowState ? 'active' : ''}">
+                        <span class="cp-name">${flowEmojis[i]} ${flowNames[i]}</span>
+                        <div class="cp-bar"><div class="cp-fill" style="width:${p * 100}%"></div></div>
+                        <span class="cp-val">${(p * 100).toFixed(0)}%</span>
+                    </div>
+                `).join('');
+            }
         }
 
         // Feature importance
@@ -484,6 +601,39 @@
 
         // Timeline chart
         drawTimeline();
+    }
+
+    /** Update a source badge element */
+    function updateSourceBadge(id, source) {
+        const el = $(`#${id}`);
+        if (!el) return;
+        
+        if (source === 'ONNX Model') {
+            el.textContent = 'ONNX Model ✅';
+            el.className = 'modality-source-badge badge-onnx';
+        } else if (source === 'Chrome Extension') {
+            el.textContent = 'Extension ✅';
+            el.className = 'modality-source-badge badge-onnx';
+        } else if (source && source.includes('+ Extension')) {
+            el.textContent = 'ONNX + Ext ✅';
+            el.className = 'modality-source-badge badge-onnx';
+        } else if (source === 'no-webcam' || source === 'no-mic' || source === 'no-text') {
+            const missing = source === 'no-webcam' ? 'Enable Webcam' : source === 'no-mic' ? 'Enable Mic' : 'Enter Task';
+            el.textContent = missing;
+            el.className = 'modality-source-badge badge-warning';
+        } else if (source === 'no-model') {
+            el.textContent = 'No Model';
+            el.className = 'modality-source-badge badge-error';
+        } else if (source === 'keyword-demo') {
+            el.textContent = 'Keyword Demo';
+            el.className = 'modality-source-badge badge-demo';
+        } else if (source === 'error') {
+            el.textContent = 'Error ❌';
+            el.className = 'modality-source-badge badge-error';
+        } else {
+            el.textContent = source || 'Idle';
+            el.className = 'modality-source-badge badge-idle';
+        }
     }
 
     function updateSessionDuration() {
