@@ -1,12 +1,24 @@
 {
-  "cv_f1_macro_mean": 0.9886814750182442,
-  "cv_f1_macro_std": 0.008288546505667379,
+  "cv_f1_macro_mean": 0.6460622625772653,
+  "cv_f1_macro_std": 0.016991566416395102,
   "training_accuracy": 1.0,
+  "training_f1_macro": 1.0,
+  "dataset": "RAVDESS",
+  "total_samples": 1440,
+  "class_distribution": {
+    "ERRATIC_SPEECH": 384,
+    "SLOW_LABORED": 192,
+    "NORMAL_FOCUSED": 288,
+    "FAST_ENERGIZED": 384,
+    "RAPID_SCATTERED": 192
+  },
   "class_names": [
     "ERRATIC_SPEECH",
     "SLOW_LABORED",
     "NORMAL_FOCUSED",
     "FAST_ENERGIZED",
     "RAPID_SCATTERED"
-  ]
+  ],
+  "feature_vector_dim": 52,
+  "onnx_exported": true
 }

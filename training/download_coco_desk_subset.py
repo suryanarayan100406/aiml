@@ -1,15 +1,15 @@
 """
 Download COCO dataset subset for desk/workspace distraction detection.
 Downloads only images containing desk-relevant objects:
-  - cell phone (COCO class 77) → phone distraction
-  - laptop (COCO class 73) → workspace monitor
-  - keyboard (COCO class 76) → work tool
-  - mouse (COCO class 74) → work tool
-  - tv/monitor (COCO class 72) → workspace screen
-  - remote (COCO class 75) → distraction
-  - book (COCO class 84) → can be distraction
-  - cup (COCO class 47) → neutral
-  - bottle (COCO class 44) → neutral
+  - cell phone (COCO class 77) -> phone distraction
+  - laptop (COCO class 73) -> workspace monitor
+  - keyboard (COCO class 76) -> work tool
+  - mouse (COCO class 74) -> work tool
+  - tv/monitor (COCO class 72) -> workspace screen
+  - remote (COCO class 75) -> distraction
+  - book (COCO class 84) -> can be distraction
+  - cup (COCO class 47) -> neutral
+  - bottle (COCO class 44) -> neutral
 
 Organizes into YOLO format structure ready for training.
 Output: data/coco_desk_subset/
@@ -24,11 +24,12 @@ import sys
 import io
 
 # Force UTF-8 for Windows PowerShell to prevent UnicodeEncodeError
-if isinstance(sys.stdout, io.TextIOWrapper):
-    try:
-        sys.stdout.reconfigure(encoding='utf-8')
-    except Exception:
-        pass
+for stream in [sys.stdout, sys.stderr]:
+    if isinstance(stream, io.TextIOWrapper):
+        try:
+            stream.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
 
 import json
 import shutil
@@ -46,15 +47,15 @@ DATASET_DIR = PROJECT_ROOT / "data" / "coco_desk_subset"
 # These are the COCO annotation category IDs (NOT the class indices)
 COCO_DESK_CATEGORIES = {
     # COCO_cat_id: (our_class_id, our_class_name)
-    77: (0, "phone"),       # cell phone → primary distraction
-    73: (1, "laptop"),      # laptop → workspace
-    72: (1, "monitor"),     # tv/monitor → workspace (same class as laptop)
-    76: (2, "keyboard"),    # keyboard → work tool
-    74: (2, "mouse"),       # mouse → work tool (same class as keyboard)
-    75: (3, "distraction"), # remote → distraction
-    84: (3, "distraction"), # book → distraction (when not working)
-    47: (3, "distraction"), # cup → neutral but counts for distraction_count
-    44: (3, "distraction"), # bottle → neutral but counts for distraction_count
+    77: (0, "phone"),       # cell phone -> primary distraction
+    73: (1, "laptop"),      # laptop -> workspace
+    72: (1, "monitor"),     # tv/monitor -> workspace (same class as laptop)
+    76: (2, "keyboard"),    # keyboard -> work tool
+    74: (2, "mouse"),       # mouse -> work tool (same class as keyboard)
+    75: (3, "distraction"), # remote -> distraction
+    84: (3, "distraction"), # book -> distraction (when not working)
+    47: (3, "distraction"), # cup -> neutral but counts for distraction_count
+    44: (3, "distraction"), # bottle -> neutral but counts for distraction_count
 }
 
 OUR_CLASS_NAMES = ["phone", "monitor", "work_tool", "distraction"]
@@ -72,10 +73,10 @@ COCO_IMG_BASE = "http://images.cocodataset.org"
 def download_file(url, dest, desc=""):
     """Download a file with progress bar"""
     if os.path.exists(dest):
-        print(f"  ✓ Already exists: {dest}")
+        print(f"  OK Already exists: {dest}")
         return
 
-    print(f"  ↓ Downloading {desc or url}...")
+    print(f"  v Downloading {desc or url}...")
     
     def _progress(count, block_size, total_size):
         pct = count * block_size * 100 / total_size if total_size > 0 else 0
@@ -84,7 +85,7 @@ def download_file(url, dest, desc=""):
 
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     urllib.request.urlretrieve(url, dest, reporthook=_progress)
-    print(f"\n  ✓ Saved: {dest}")
+    print(f"\n  OK Saved: {dest}")
 
 
 def download_annotations():
@@ -93,24 +94,24 @@ def download_annotations():
     anno_dir = DATASET_DIR / "annotations"
 
     if (anno_dir / "instances_val2017.json").exists():
-        print("✓ Annotations already downloaded")
+        print("OK Annotations already downloaded")
         return anno_dir / "instances_val2017.json"
 
     download_file(COCO_ANNO_URL, str(anno_zip), "COCO 2017 annotations (~252MB)")
 
     # Extract
     import zipfile
-    print("  ↻ Extracting annotations...")
+    print("  * Extracting annotations...")
     with zipfile.ZipFile(str(anno_zip), 'r') as z:
         z.extractall(str(DATASET_DIR))
     
-    print(f"  ✓ Extracted to {anno_dir}")
+    print(f"  OK Extracted to {anno_dir}")
     return anno_dir / "instances_val2017.json"
 
 
 def parse_annotations(anno_path, max_images=300):
     """Parse COCO annotations and filter for desk-relevant categories"""
-    print(f"\n📋 Parsing annotations from {anno_path.name}...")
+    print(f"\n[INFO] Parsing annotations from {anno_path.name}...")
 
     with open(anno_path, 'r') as f:
         coco = json.load(f)
@@ -158,13 +159,15 @@ def parse_annotations(anno_path, max_images=300):
 
 
 def download_images(image_ids, images_by_id, split="val2017"):
-    """Download selected COCO images"""
+    """Download selected COCO images with retry logic"""
+    import time
     img_dir = DATASET_DIR / "images" / split
     os.makedirs(img_dir, exist_ok=True)
 
-    print(f"\n🖼️  Downloading {len(image_ids)} images...")
+    print(f"\nDownloading {len(image_ids)} images...")
     downloaded = 0
     failed = 0
+    max_retries = 3
 
     for i, img_id in enumerate(image_ids):
         img_info = images_by_id[img_id]
@@ -176,18 +179,25 @@ def download_images(image_ids, images_by_id, split="val2017"):
             continue
 
         url = f"{COCO_IMG_BASE}/{split}/{filename}"
-        try:
-            urllib.request.urlretrieve(url, str(dest))
-            downloaded += 1
-        except Exception as e:
-            failed += 1
-            print(f"  ✗ Failed: {filename} ({e})")
+        success = False
+        for attempt in range(max_retries):
+            try:
+                urllib.request.urlretrieve(url, str(dest))
+                downloaded += 1
+                success = True
+                break
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    time.sleep(1)  # Wait before retry
+                else:
+                    failed += 1
+                    print(f"  FAIL: {filename} ({type(e).__name__})")
 
         # Progress
         if (i + 1) % 20 == 0:
             print(f"  [{i+1}/{len(image_ids)}] Downloaded {downloaded}, Failed {failed}")
 
-    print(f"  ✓ Downloaded {downloaded} images, {failed} failed")
+    print(f"  Done: {downloaded} images downloaded, {failed} failed")
     return img_dir
 
 
@@ -196,7 +206,7 @@ def create_yolo_labels(image_ids, relevant_annos, images_by_id, img_dir):
     label_dir = DATASET_DIR / "labels" / img_dir.name
     os.makedirs(label_dir, exist_ok=True)
 
-    print(f"\n📝 Creating YOLO labels...")
+    print(f"\n[LABEL] Creating YOLO labels...")
     count = 0
 
     for img_id in image_ids:
@@ -231,7 +241,7 @@ def create_yolo_labels(image_ids, relevant_annos, images_by_id, img_dir):
                 f.write('\n'.join(lines))
             count += 1
 
-    print(f"  ✓ Created {count} label files")
+    print(f"  OK Created {count} label files")
     return label_dir
 
 
@@ -265,7 +275,7 @@ def create_dataset_yaml(img_dir):
         if label_file.exists():
             shutil.copy2(label_file, DATASET_DIR / "labels" / "val" / label_file.name)
 
-    print(f"\n📁 Dataset split: {len(train_imgs)} train / {len(val_imgs)} val")
+    print(f"\n[DIR] Dataset split: {len(train_imgs)} train / {len(val_imgs)} val")
 
     # Create data.yaml
     yaml_content = f"""# ANI Flow Optimizer — Desk Distraction Dataset
@@ -280,24 +290,24 @@ nc: {len(OUR_CLASS_NAMES)}
 names: {OUR_CLASS_NAMES}
 
 # Class mapping from COCO:
-#   phone (COCO: cell_phone 77) → distraction indicator
-#   monitor (COCO: tv 72, laptop 73) → workspace presence
-#   work_tool (COCO: keyboard 76, mouse 74) → active work indicator
-#   distraction (COCO: remote 75, book 84, cup 47, bottle 44) → distraction count
+#   phone (COCO: cell_phone 77) -> distraction indicator
+#   monitor (COCO: tv 72, laptop 73) -> workspace presence
+#   work_tool (COCO: keyboard 76, mouse 74) -> active work indicator
+#   distraction (COCO: remote 75, book 84, cup 47, bottle 44) -> distraction count
 """
 
     yaml_path = DATASET_DIR / "data.yaml"
     with open(yaml_path, 'w') as f:
         f.write(yaml_content)
 
-    print(f"  ✓ Created {yaml_path}")
+    print(f"  OK Created {yaml_path}")
     return yaml_path
 
 
 def print_dataset_summary():
     """Print final dataset summary"""
     print("\n" + "=" * 60)
-    print("📊 DATASET SUMMARY")
+    print("[SUMMARY] DATASET SUMMARY")
     print("=" * 60)
     print(f"  Location: {DATASET_DIR}")
     print(f"  Classes: {OUR_CLASS_NAMES}")
@@ -311,7 +321,7 @@ def print_dataset_summary():
 
     yaml_path = DATASET_DIR / "data.yaml"
     print(f"\n  data.yaml: {yaml_path}")
-    print(f"\n  ✅ Ready for training! Run:")
+    print(f"\n  [OK] Ready for training! Run:")
     print(f"     python training/train_vision_yolov8.py --data {yaml_path}")
     print("=" * 60)
 
@@ -325,7 +335,7 @@ def main():
     args = parser.parse_args()
 
     print("=" * 60)
-    print("📦 COCO Desk Subset Downloader")
+    print("[DL] COCO Desk Subset Downloader")
     print("   Downloading desk-relevant images for distraction detection")
     print("=" * 60)
 

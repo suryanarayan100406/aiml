@@ -1,0 +1,19 @@
+{
+  "accuracy": 0.9474727452923687,
+  "f1_macro": 0.9472342793845494,
+  "training_loss": 0.46338901736519555,
+  "epochs": 8,
+  "total_samples": 5044,
+  "train_size": 4035,
+  "eval_size": 1009,
+  "augmentation": "word_dropout + synonym_replace + typos + cross_category_noise",
+  "class_names": [
+    "DEEP_WORK",
+    "SHALLOW_WORK",
+    "CREATIVE",
+    "ADMINISTRATIVE",
+    "COMMUNICATION"
+  ],
+  "max_length": 128,
+  "model_size_mb": 0.30864906311035156
+}

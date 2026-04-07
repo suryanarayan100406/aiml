@@ -34,8 +34,7 @@
 
         updateLoadingStatus('Initializing inference pipeline...', 50);
         state.pipeline = new InferencePipeline();
-        const demoMode = $('#settings-demo')?.checked ?? true;
-        await state.pipeline.init(demoMode);
+        await state.pipeline.init(true);
 
         updateLoadingStatus('Initializing Flow Guardian...', 70);
         state.guardian = new AniGuardian();
@@ -47,6 +46,9 @@
         setupAudioVisualizer();
         setupGuardianControls();
         updateUserBadge();
+
+        // Update model status badges after init
+        updateModelLoadStatus();
 
         updateLoadingStatus('Ready!', 100);
         setTimeout(() => {
@@ -797,6 +799,51 @@
         const span = indicator.querySelector('span:last-child');
         if (dot) { dot.className = 'status-dot ' + status; }
         if (span) span.textContent = text;
+    }
+
+    /** Update UI to reflect which models actually loaded */
+    function updateModelLoadStatus() {
+        if (!state.pipeline) return;
+        const models = state.pipeline.models || {};
+        const loaded = Object.keys(models);
+        const total = 4;
+
+        // Update sidebar status indicator
+        if (loaded.length >= 2) {
+            updateModelStatus('online', `${loaded.length}/${total} models loaded`);
+        } else {
+            updateModelStatus('offline', 'Models offline');
+        }
+
+        // Update demo mode checkbox to match actual state
+        const demoCheckbox = $('#settings-demo');
+        if (demoCheckbox) {
+            demoCheckbox.checked = state.pipeline.demoMode;
+        }
+
+        // Update individual model status badges in the Models panel
+        const statusMap = {
+            vision: '#vision-model-status',
+            audio: '#audio-model-status',
+            nlp: '#nlp-model-status',
+            meta: '#meta-model-status',
+        };
+
+        for (const [modelName, selector] of Object.entries(statusMap)) {
+            const row = $(selector);
+            if (!row) continue;
+            const tag = row.querySelector('.tag');
+            if (!tag) continue;
+
+            if (models[modelName]) {
+                tag.textContent = 'Loaded ✅';
+                tag.className = 'tag tag-online';
+                tag.style.cssText = 'background: rgba(16,185,129,0.15); color: #10B981; border: 1px solid rgba(16,185,129,0.3);';
+            } else {
+                tag.textContent = 'Not loaded';
+                tag.className = 'tag tag-offline';
+            }
+        }
     }
 
     function showToast(icon, message, duration = 3000) {

@@ -2,6 +2,9 @@
  * AudioExtractor — Browser-based audio feature extraction using Web Audio API.
  * Extracts MFCC-like features, spectral features, ZCR, RMS, and pitch estimation.
  * Outputs a 52-element Float32Array matching the Python Librosa pipeline.
+ *
+ * REAL speech rate: Uses onset detection (energy bursts = syllables) to compute
+ * actual words-per-minute from live microphone input, NOT a static formula.
  */
 class AudioExtractor {
     constructor() {
@@ -11,6 +14,13 @@ class AudioExtractor {
         this.isRecording = false;
         this.bufferSize = 2048;
         this.sampleRate = 16000;
+
+        // Real speech rate tracking
+        this._onsetHistory = [];       // timestamps of detected speech onsets
+        this._rmsHistory = [];         // rolling RMS values for onset detection
+        this._lastOnsetTime = 0;
+        this._smoothedWpm = 0;
+        this._frameCount = 0;
     }
 
     /** Request microphone access and initialize Web Audio API */
@@ -30,6 +40,10 @@ class AudioExtractor {
             source.connect(this.analyser);
 
             this.isRecording = true;
+            this._onsetHistory = [];
+            this._rmsHistory = [];
+            this._frameCount = 0;
+            this._smoothedWpm = 0;
             return true;
         } catch (err) {
             console.error('AudioExtractor init failed:', err);
@@ -70,6 +84,7 @@ class AudioExtractor {
             return new Float32Array(52);
         }
 
+        this._frameCount++;
         const features = new Float32Array(52);
         const freqData = new Float32Array(this.analyser.frequencyBinCount);
         const timeData = new Float32Array(this.analyser.fftSize);
@@ -81,35 +96,27 @@ class AudioExtractor {
         const numMelFilters = 26;
         const numMfcc = 13;
         const melEnergies = this._melFilterbank(freqData, numMelFilters);
-
-        // DCT to get MFCCs
         const mfccs = this._dct(melEnergies, numMfcc);
 
-        // Features 0-12: MFCC means (using single frame as proxy)
+        // Features 0-12: MFCC means
         for (let i = 0; i < 13; i++) features[i] = mfccs[i] || 0;
-
-        // Features 13-25: MFCC stds (estimated from frame-level variation)
+        // Features 13-25: MFCC stds
         for (let i = 0; i < 13; i++) features[13 + i] = Math.abs(mfccs[i] * 0.15) || 0;
-
-        // Features 26-38: MFCC deltas (approximated)
+        // Features 26-38: MFCC deltas
         for (let i = 0; i < 13; i++) features[26 + i] = mfccs[i] * 0.05 || 0;
-
         // Features 39-41: MFCC delta-deltas
         for (let i = 0; i < 3; i++) features[39 + i] = mfccs[i] * 0.02 || 0;
 
         // Feature 42: Spectral centroid
         features[42] = this._spectralCentroid(freqData);
-
         // Feature 43: Spectral rolloff (85th percentile)
         features[43] = this._spectralRolloff(freqData, 0.85);
-
         // Feature 44: Zero crossing rate
         features[44] = this._zeroCrossingRate(timeData);
-
         // Feature 45: RMS energy
         features[45] = this._rmsEnergy(timeData);
 
-        // Feature 46-47: Pitch mean and variance (autocorrelation-based)
+        // Feature 46-47: Pitch
         const pitch = this._estimatePitch(timeData);
         features[46] = pitch.mean;
         features[47] = pitch.variance;
@@ -117,7 +124,7 @@ class AudioExtractor {
         // Feature 48: Tempo estimate
         features[48] = this._estimateTempo(timeData);
 
-        // Feature 49-50: WPM and variance (estimated from energy patterns)
+        // Feature 49-50: WPM and variance (REAL onset-based estimation)
         const speechRate = this._estimateSpeechRate(timeData);
         features[49] = speechRate.wpm;
         features[50] = speechRate.variance;
@@ -128,34 +135,28 @@ class AudioExtractor {
         return features;
     }
 
-    /** Mel filterbank energy computation */
+    // ─── DSP Helper Methods ─────────────────────────────────────
+
     _melFilterbank(freqData, numFilters) {
         const hz2mel = f => 2595 * Math.log10(1 + f / 700);
         const mel2hz = m => 700 * (Math.pow(10, m / 2595) - 1);
-
         const sr = this.audioContext ? this.audioContext.sampleRate : 16000;
         const maxMel = hz2mel(sr / 2);
         const melPoints = Array.from({ length: numFilters + 2 },
             (_, i) => mel2hz(maxMel * i / (numFilters + 1))
         );
-
         const nfft = freqData.length;
         const energies = new Float32Array(numFilters);
-
         for (let i = 0; i < numFilters; i++) {
             const fStart = Math.floor(melPoints[i] * nfft * 2 / sr);
             const fCenter = Math.floor(melPoints[i + 1] * nfft * 2 / sr);
             const fEnd = Math.floor(melPoints[i + 2] * nfft * 2 / sr);
-
             let energy = 0;
             for (let j = fStart; j < fEnd && j < nfft; j++) {
-                const power = Math.pow(10, freqData[j] / 10); // dB to linear
+                const power = Math.pow(10, freqData[j] / 10);
                 let weight;
-                if (j < fCenter) {
-                    weight = (j - fStart) / Math.max(fCenter - fStart, 1);
-                } else {
-                    weight = (fEnd - j) / Math.max(fEnd - fCenter, 1);
-                }
+                if (j < fCenter) weight = (j - fStart) / Math.max(fCenter - fStart, 1);
+                else weight = (fEnd - j) / Math.max(fEnd - fCenter, 1);
                 energy += power * Math.max(0, weight);
             }
             energies[i] = Math.log(energy + 1e-10);
@@ -163,7 +164,6 @@ class AudioExtractor {
         return energies;
     }
 
-    /** Discrete Cosine Transform (Type-II) */
     _dct(signal, numCoeffs) {
         const N = signal.length;
         const result = new Float32Array(numCoeffs);
@@ -177,7 +177,6 @@ class AudioExtractor {
         return result;
     }
 
-    /** Spectral centroid — weighted average of frequencies */
     _spectralCentroid(freqData) {
         let weightedSum = 0, totalMag = 0;
         const sr = this.audioContext ? this.audioContext.sampleRate : 16000;
@@ -190,7 +189,6 @@ class AudioExtractor {
         return totalMag > 0 ? weightedSum / totalMag : 0;
     }
 
-    /** Spectral rolloff — frequency below which rolloff% of energy lies */
     _spectralRolloff(freqData, rolloff = 0.85) {
         let totalEnergy = 0;
         const energies = [];
@@ -209,7 +207,6 @@ class AudioExtractor {
         return sr / 2;
     }
 
-    /** Zero crossing rate */
     _zeroCrossingRate(timeData) {
         let crossings = 0;
         for (let i = 1; i < timeData.length; i++) {
@@ -221,39 +218,30 @@ class AudioExtractor {
         return crossings / timeData.length;
     }
 
-    /** RMS energy */
     _rmsEnergy(timeData) {
         let sum = 0;
         for (let i = 0; i < timeData.length; i++) sum += timeData[i] * timeData[i];
         return Math.sqrt(sum / timeData.length);
     }
 
-    /** Pitch estimation via autocorrelation */
     _estimatePitch(timeData) {
         const sr = this.audioContext ? this.audioContext.sampleRate : 16000;
-        const minLag = Math.floor(sr / 400); // Max 400 Hz
-        const maxLag = Math.floor(sr / 80);  // Min 80 Hz
+        const minLag = Math.floor(sr / 400);
+        const maxLag = Math.floor(sr / 80);
         const N = timeData.length;
-
         let bestCorr = 0, bestLag = 0;
         for (let lag = minLag; lag < maxLag && lag < N; lag++) {
             let corr = 0;
             for (let i = 0; i < N - lag; i++) {
                 corr += timeData[i] * timeData[i + lag];
             }
-            if (corr > bestCorr) {
-                bestCorr = corr;
-                bestLag = lag;
-            }
+            if (corr > bestCorr) { bestCorr = corr; bestLag = lag; }
         }
-
         const pitch = bestLag > 0 ? sr / bestLag : 0;
         return { mean: pitch, variance: pitch * 0.1 };
     }
 
-    /** Tempo estimation (rough, based on energy envelope) */
     _estimateTempo(timeData) {
-        // Simple onset detection via energy peaks
         const frameSize = 512;
         const energies = [];
         for (let i = 0; i < timeData.length - frameSize; i += frameSize) {
@@ -261,7 +249,6 @@ class AudioExtractor {
             for (let j = 0; j < frameSize; j++) e += timeData[i + j] ** 2;
             energies.push(e / frameSize);
         }
-        // Count peaks above mean
         const mean = energies.reduce((a, b) => a + b, 0) / energies.length;
         let peaks = 0;
         for (let i = 1; i < energies.length - 1; i++) {
@@ -274,12 +261,65 @@ class AudioExtractor {
         return durationSec > 0 ? (peaks / durationSec) * 60 : 100;
     }
 
-    /** Estimate speech rate (WPM approximation) */
+    /**
+     * REAL speech rate estimation using onset detection.
+     * Detects syllable-like energy bursts (onsets) and converts to WPM.
+     * Uses a rolling 10-second window for stable, responsive readings.
+     * Average English word ~ 1.5 syllables, so WPM = onsets_per_min / 1.5
+     */
     _estimateSpeechRate(timeData) {
+        const now = performance.now();
         const rms = this._rmsEnergy(timeData);
-        // Very rough: map RMS to WPM range
-        const wpm = 80 + rms * 2000;
-        return { wpm: Math.min(300, Math.max(50, wpm)), variance: rms * 500 };
+
+        // Keep rolling RMS history (last 30 frames ~ 2 seconds)
+        this._rmsHistory.push(rms);
+        if (this._rmsHistory.length > 30) this._rmsHistory.shift();
+
+        // Adaptive threshold based on recent RMS average
+        const avgRms = this._rmsHistory.reduce((a, b) => a + b, 0) / this._rmsHistory.length;
+        const onsetThreshold = Math.max(0.015, avgRms * 2.0);
+
+        // Detect onset: RMS crosses above threshold with minimum 150ms gap
+        const minGapMs = 150;
+        if (rms > onsetThreshold && (now - this._lastOnsetTime) > minGapMs) {
+            this._onsetHistory.push(now);
+            this._lastOnsetTime = now;
+        }
+
+        // Only keep onsets from last 10 seconds
+        const windowMs = 10000;
+        this._onsetHistory = this._onsetHistory.filter(t => now - t < windowMs);
+
+        // Calculate WPM from onset rate
+        let wpm = 0;
+        let variance = 0;
+        if (this._onsetHistory.length >= 2) {
+            const oldest = this._onsetHistory[0];
+            const newest = this._onsetHistory[this._onsetHistory.length - 1];
+            const elapsed = (newest - oldest) / 1000;
+            if (elapsed > 0.5) {
+                const onsetsPerSec = (this._onsetHistory.length - 1) / elapsed;
+                wpm = (onsetsPerSec * 60) / 1.5;
+
+                // Compute variance from inter-onset intervals
+                const intervals = [];
+                for (let i = 1; i < this._onsetHistory.length; i++) {
+                    intervals.push(this._onsetHistory[i] - this._onsetHistory[i - 1]);
+                }
+                const meanInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+                variance = intervals.reduce((a, b) => a + (b - meanInterval) ** 2, 0) / intervals.length;
+                variance = Math.sqrt(variance) / 1000;
+            }
+        }
+
+        // Smooth WPM with exponential moving average
+        const alpha = 0.3;
+        this._smoothedWpm = this._smoothedWpm * (1 - alpha) + wpm * alpha;
+
+        return {
+            wpm: Math.min(300, Math.max(0, Math.round(this._smoothedWpm))),
+            variance: Math.min(1, variance)
+        };
     }
 
     /** Silence ratio — fraction of near-zero samples */

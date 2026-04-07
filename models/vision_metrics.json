@@ -1,0 +1,14 @@
+{
+  "mAP50": 0.4270109699925191,
+  "mAP50_95": 0.2956319595613372,
+  "precision": 0.5418436703544947,
+  "recall": 0.36988502439125936,
+  "epochs": 50,
+  "dataset_images": 389,
+  "class_names": [
+    "phone",
+    "monitor",
+    "work_tool",
+    "distraction"
+  ]
+}

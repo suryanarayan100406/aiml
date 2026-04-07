@@ -18,6 +18,9 @@ class InferencePipeline {
         this.taskClassNames = ['DEEP_WORK', 'SHALLOW_WORK', 'CREATIVE', 'ADMINISTRATIVE', 'COMMUNICATION'];
         this.demandMap = { 0: 0.9, 1: 0.2, 2: 0.7, 3: 0.3, 4: 0.5 };
 
+        // Vision model type: 'finetuned' (4 classes) or 'pretrained_coco' (80 classes)
+        this.visionModelType = 'finetuned';
+
         // Chrome Extension bridge — real tab data
         this._extensionTabData = null;
         this._extensionConnected = false;
@@ -37,9 +40,9 @@ class InferencePipeline {
         // Listen for real tab data from Chrome Extension
         this._setupExtensionBridge();
 
-        if (!demoMode) {
-            await this.loadModels();
-        }
+        // Always try to load models — loadModels() will set demoMode=true
+        // if models aren't available, or demoMode=false if they load successfully
+        await this.loadModels();
 
         await this.nlpTokenizer.loadVocab();
         return true;
@@ -75,6 +78,18 @@ class InferencePipeline {
                 await this._loadScript('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js');
             }
 
+            // Detect vision model type from class mapping
+            try {
+                const mappingResp = await fetch('../models/vision_class_mapping.json');
+                if (mappingResp.ok) {
+                    const mapping = await mappingResp.json();
+                    this.visionModelType = mapping.mode || 'finetuned';
+                    console.log(`[ANI] Vision model type: ${this.visionModelType}`);
+                }
+            } catch (e) {
+                console.warn('Could not load vision class mapping, defaulting to finetuned');
+            }
+
             const modelPaths = {
                 vision: '../models/desk_distraction_v1.onnx',
                 audio: '../models/speech_classifier.onnx',
@@ -95,6 +110,9 @@ class InferencePipeline {
             if (!this.modelsLoaded) {
                 console.warn('Not enough models loaded, falling back to demo mode');
                 this.demoMode = true;
+            } else {
+                this.demoMode = false;
+                console.log(`✅ ${Object.keys(this.models).length} models loaded — REAL inference mode`);
             }
             return this.modelsLoaded;
         } catch (e) {
@@ -416,37 +434,26 @@ class InferencePipeline {
             const imageData = this.visionPreprocessor.captureAndPreprocess();
             if (!imageData) return defaults;
 
+            // Get the correct input name from the model
+            const inputNames = this.models.vision.inputNames || ['images'];
+            const inputName = inputNames[0];
             const tensor = new ort.Tensor('float32', imageData, [1, 3, 640, 640]);
-            const result = await this.models.vision.run({ images: tensor });
+            const feeds = {};
+            feeds[inputName] = tensor;
+            const result = await this.models.vision.run(feeds);
             
-            // Parse YOLO output — boxes in (x1,y1,x2,y2,conf,class) format
+            // Delegate detection parsing to VisionPreprocessor
+            // which handles both YOLOv8 raw format [1, num_features, num_boxes]
+            // and post-processed format [num_detections, 6]
             const output = result[Object.keys(result)[0]];
-            const data = output.data;
-            const numDetections = output.dims[1] || 0;
-            
-            let tabCount = 0, phoneVisible = 0, distractionCount = 0, workArea = 0;
-            const imgArea = 640 * 640;
-            
-            for (let i = 0; i < numDetections; i++) {
-                const offset = i * 6;
-                const conf = data[offset + 4];
-                const cls = Math.round(data[offset + 5]);
-                if (conf < 0.3) continue;
-                
-                const w = data[offset + 2] - data[offset];
-                const h = data[offset + 3] - data[offset + 1];
-                
-                if (cls === 0) tabCount++;
-                else if (cls === 1 && conf > 0.5) phoneVisible = 1;
-                else if (cls === 2) distractionCount++;
-                else if (cls === 3) workArea += w * h;
-            }
+            const isCoco = this.visionModelType === 'pretrained_coco';
+            const parsed = this.visionPreprocessor.parseDetections(output, isCoco);
             
             return {
-                tab_count_norm: Math.min(tabCount / 30, 1.0),
-                phone_visible: phoneVisible,
-                distraction_count_norm: Math.min(distractionCount / 5, 1.0),
-                focus_ratio: Math.min(workArea / imgArea, 1.0) || 0.5,
+                tab_count_norm: parsed.tab_count_norm,
+                phone_visible: parsed.phone_visible,
+                distraction_count_norm: parsed.distraction_count_norm,
+                focus_ratio: parsed.focus_ratio,
             };
         } catch (e) {
             console.warn('Vision model inference failed:', e);

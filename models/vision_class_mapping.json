@@ -1,0 +1,24 @@
+{
+  "mode": "finetuned_coco_subset",
+  "onnx_model": "desk_distraction_v1.onnx",
+  "num_classes": 4,
+  "class_names": [
+    "phone",
+    "monitor",
+    "work_tool",
+    "distraction"
+  ],
+  "input_shape": [
+    1,
+    3,
+    640,
+    640
+  ],
+  "training": {
+    "epochs": 50,
+    "dataset_size": 389,
+    "train_size": 311,
+    "val_size": 78
+  },
+  "note": "Fine-tuned on COCO desk subset. 4 custom classes (phone, monitor, work_tool, distraction)."
+}

@@ -1,25 +1,25 @@
 {
   "best_params": {
     "class_weight": "balanced",
-    "max_depth": null,
-    "min_samples_split": 2,
-    "n_estimators": 200
+    "max_depth": "6",
+    "min_samples_split": "2",
+    "n_estimators": "300"
   },
-  "cv_f1_macro": 0.9819957559621036,
-  "training_f1_macro": 1.0,
-  "average_ece": 0.11732926682511743,
+  "cv_f1_macro": 0.6967949706442954,
+  "training_f1_macro": 0.8405122754829897,
+  "average_ece": 0.0923398660516239,
   "feature_importances": {
-    "distraction_count_norm": 0.15248005098004397,
-    "cognitive_demand_score": 0.13945293911219978,
-    "focus_ratio": 0.13675557381512357,
-    "task_class_encoded": 0.1203006780417746,
-    "tab_count_norm": 0.11745095964227896,
-    "speech_class": 0.08256557555826816,
-    "fluency_score": 0.08025151683509,
-    "task_confidence": 0.06452508346246344,
-    "wpm_norm": 0.0440979563187278,
-    "phone_visible": 0.03493778270791682,
-    "speech_confidence": 0.02718188352611306
+    "cognitive_demand_score": 0.18146391963542158,
+    "tab_count_norm": 0.15187116690442629,
+    "phone_visible": 0.15165168943357257,
+    "focus_ratio": 0.13949327309681328,
+    "distraction_count_norm": 0.13589869091095863,
+    "task_class_encoded": 0.06372326450475069,
+    "wpm_norm": 0.05478169576765549,
+    "fluency_score": 0.052043814227557064,
+    "speech_class": 0.027311520417580455,
+    "task_confidence": 0.022495564228915844,
+    "speech_confidence": 0.019265400872348046
   },
   "class_names": [
     "PSEUDO_WORKING",
@@ -27,5 +27,11 @@
     "DISTRACTED",
     "SOFT_FLOW",
     "DEEP_FLOW"
-  ]
+  ],
+  "dataset_size": 2000,
+  "data_sources": {
+    "vision": "COCO-based realistic simulation",
+    "audio": "RAVDESS-trained XGBoost model outputs",
+    "nlp": "keyword classifier"
+  }
 }

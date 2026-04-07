@@ -1,13 +1,45 @@
-# Datasets and large items
-data/
+# Datasets and large files
+data/coco_desk_subset/
+data/processed/
 runs/
 *.zip
 *.pt
+
+# Model files (trained locally or on Colab — too large for git)
+models/*.onnx
+models/*.pkl
+models/*.npy
+models/vision_runs/
+models/nlp_training_output/
+models/task_nlp_model/
+models/*.onnx.data
+
+# Keep model metadata (small JSON + vocab)
+!models/*_metrics.json
+!models/vision_class_mapping.json
+!models/vocab.txt
+
+# Training output
+output/
+
+# Python
 __pycache__/
 .venv/
-node_modules/
-.env
+*.pyc
+*.egg-info/
 
-# MacOS / OS specific
+# Environment
+.env
+node_modules/
+
+# OS specific
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+error.log
+out_xgboost.log
+
+# Temporary
+export_audio_onnx.py
