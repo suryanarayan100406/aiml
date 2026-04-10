@@ -18,6 +18,11 @@ class InferencePipeline {
         this.taskClassNames = ['DEEP_WORK', 'SHALLOW_WORK', 'CREATIVE', 'ADMINISTRATIVE', 'COMMUNICATION'];
         this.demandMap = { 0: 0.9, 1: 0.2, 2: 0.7, 3: 0.3, 4: 0.5 };
 
+        // Screen classifier classes + productivity mapping
+        this.screenClassNames = ['Code Editor', 'Terminal/CLI', 'Documentation', 'Spreadsheet',
+                                  'Email/Chat', 'Social Media', 'Video/Streaming', 'Gaming'];
+        this.screenProductivityMap = { 0: 0.95, 1: 0.90, 2: 0.80, 3: 0.70, 4: 0.50, 5: 0.10, 6: 0.15, 7: 0.05 };
+
         // Vision model type: 'finetuned' (4 classes) or 'pretrained_coco' (80 classes)
         this.visionModelType = 'finetuned';
 
@@ -98,6 +103,7 @@ class InferencePipeline {
                 audio: '../models/speech_classifier.onnx',
                 nlp: '../models/task_nlp_classifier.onnx',
                 meta: '../models/meta_flow_classifier.onnx',
+                screen: '../models/screen_classifier.onnx',
             };
 
             for (const [name, path] of Object.entries(modelPaths)) {
@@ -256,7 +262,13 @@ class InferencePipeline {
             nlpResult = this.nlpTokenizer.classifyDemo(taskText);
         }
 
-        // Fuse into 11-feature vector
+        // ─── Screen: Classify app/UI if screen/webcam is active ──
+        let screenResult = { screen_class: 0, screen_productivity: 0.5, screen_confidence: 0.3, className: 'Unknown', source: 'inactive' };
+        if (this.visionPreprocessor.isActive) {
+            screenResult = await this._runScreenModel();
+        }
+
+        // Fuse into 14-feature vector (11 original + 3 screen)
         const fusedVector = [
             visionFeatures.tab_count_norm,
             visionFeatures.phone_visible,
@@ -269,9 +281,12 @@ class InferencePipeline {
             nlpResult.taskClass,
             nlpResult.cognitiveDemand,
             nlpResult.confidence,
+            screenResult.screen_class,
+            screenResult.screen_productivity,
+            screenResult.screen_confidence,
         ];
 
-        // Demo meta-classifier — weighted scoring
+        // Demo meta-classifier — weighted scoring (uses first 11 features)
         const flowScores = this._demoMetaClassifier(fusedVector);
         const predictedClass = flowScores.indexOf(Math.max(...flowScores));
 
@@ -315,31 +330,42 @@ class InferencePipeline {
                 features: nlpResult,
                 source: 'local-nlp',
             },
+            screen: {
+                appType: screenResult.className,
+                productivity: (screenResult.screen_productivity * 100).toFixed(0) + '%',
+                confidence: (screenResult.screen_confidence * 100).toFixed(0) + '%',
+                classProbs: screenResult.class_probs || null,
+                features: screenResult,
+                source: screenResult.source,
+            },
             featureImportances: this._computeFeatureImportance(fusedVector, predictedClass),
-            dataSources: { vision: visionSource, audio: audioSource, nlp: 'local-nlp' },
+            dataSources: { vision: visionSource, audio: audioSource, nlp: 'local-nlp', screen: screenResult.source },
             timestamp: Date.now(),
         };
     }
 
     /** Demo meta-classifier — uses interpretable rules derived from training data patterns */
     _demoMetaClassifier(features) {
-        const [tabNorm, phoneVis, distNorm, focusR, spClass, spConf, wpmN, fluency, taskCls, cogDemand, taskConf] = features;
+        const [tabNorm, phoneVis, distNorm, focusR, spClass, spConf, wpmN, fluency, taskCls, cogDemand, taskConf, screenCls, screenProd, screenConf] = features;
         const scores = new Float32Array(5);
 
-        // PSEUDO_WORKING: many tabs, low demand, low fluency
-        scores[0] = (tabNorm * 0.3 + (1 - cogDemand) * 0.3 + (1 - fluency) * 0.2 + (1 - focusR) * 0.2) * 0.8;
+        // Use screen productivity to boost/penalize flow scores
+        const screenBoost = (screenProd !== undefined && screenProd !== null) ? screenProd : 0.5;
+
+        // PSEUDO_WORKING: many tabs, low demand, low fluency, low screen productivity
+        scores[0] = (tabNorm * 0.25 + (1 - cogDemand) * 0.25 + (1 - fluency) * 0.15 + (1 - focusR) * 0.15 + (1 - screenBoost) * 0.2) * 0.8;
 
         // TASK_SWITCHING: many tabs, fast speech, admin tasks
-        scores[1] = (tabNorm * 0.35 + wpmN * 0.25 + (taskCls === 3 ? 0.3 : 0.05) + distNorm * 0.1) * 0.8;
+        scores[1] = (tabNorm * 0.30 + wpmN * 0.20 + (taskCls === 3 ? 0.25 : 0.05) + distNorm * 0.1 + (1 - screenBoost) * 0.15) * 0.8;
 
-        // DISTRACTED: phone visible, many distractions, low focus
-        scores[2] = (phoneVis * 0.35 + distNorm * 0.3 + (1 - focusR) * 0.25 + (1 - taskConf) * 0.1) * 0.9;
+        // DISTRACTED: phone visible, many distractions, low focus, unproductive screen
+        scores[2] = (phoneVis * 0.30 + distNorm * 0.25 + (1 - focusR) * 0.15 + (1 - taskConf) * 0.1 + (1 - screenBoost) * 0.2) * 0.9;
 
-        // SOFT_FLOW: moderate focus, normal speech, decent demand
-        scores[3] = (focusR * 0.3 + fluency * 0.2 + cogDemand * 0.2 + (1 - distNorm) * 0.15 + (1 - phoneVis) * 0.15) * 0.85;
+        // SOFT_FLOW: moderate focus, normal speech, decent demand, productive screen
+        scores[3] = (focusR * 0.25 + fluency * 0.15 + cogDemand * 0.15 + (1 - distNorm) * 0.1 + (1 - phoneVis) * 0.1 + screenBoost * 0.25) * 0.85;
 
-        // DEEP_FLOW: high focus, low distractions, high demand, steady speech
-        scores[4] = (focusR * 0.25 + (1 - tabNorm) * 0.15 + (1 - phoneVis) * 0.15 + (1 - distNorm) * 0.15 + cogDemand * 0.15 + fluency * 0.15) * 0.9;
+        // DEEP_FLOW: high focus, low distractions, high demand, steady speech, productive screen
+        scores[4] = (focusR * 0.20 + (1 - tabNorm) * 0.10 + (1 - phoneVis) * 0.10 + (1 - distNorm) * 0.10 + cogDemand * 0.15 + fluency * 0.10 + screenBoost * 0.25) * 0.9;
 
         // Add small noise
         for (let i = 0; i < 5; i++) scores[i] += Math.random() * 0.05;
@@ -354,13 +380,14 @@ class InferencePipeline {
     /** Compute which features drove the prediction */
     _computeFeatureImportance(features, predictedClass) {
         const names = ['Tabs', 'Phone', 'Distractions', 'Focus', 'Speech',
-                       'Speech Conf', 'Speed', 'Fluency', 'Task Type', 'Demand', 'Task Conf'];
+                       'Speech Conf', 'Speed', 'Fluency', 'Task Type', 'Demand', 'Task Conf',
+                       'Screen App', 'Screen Prod.', 'Screen Conf'];
 
         // Simple importance based on deviation from "neutral" (0.5)
         const importances = features.map((f, i) => ({
-            name: names[i],
+            name: names[i] || `Feature ${i}`,
             value: features[i],
-            importance: Math.abs(f - 0.5) * (i < 4 ? 1.2 : i < 8 ? 1.0 : 0.8),
+            importance: Math.abs(f - 0.5) * (i < 4 ? 1.2 : i < 8 ? 1.0 : i < 11 ? 0.8 : 1.1),
         }));
 
         return importances.sort((a, b) => b.importance - a.importance).slice(0, 5);
@@ -372,10 +399,11 @@ class InferencePipeline {
         const extData = this._extensionTabData;
         const nlpText = taskText || (extData?.activeTab?.title) || '';
 
-        // Run all 3 modality models
+        // Run all 4 modality models
         const visionResult = await this._runVisionModel();
         const audioResult = await this._runAudioModel();
         const nlpResult = await this._runNLPModel(nlpText);
+        const screenResult = await this._runScreenModel();
 
         // Enrich vision with extension tab data when available
         if (extData && extData.extensionConnected) {
@@ -390,20 +418,24 @@ class InferencePipeline {
             }
         }
 
-        // Fuse and run meta-classifier
+        // Fuse and run meta-classifier (14-feature vector)
         const fusedVector = new Float32Array([
             visionResult.tab_count_norm, visionResult.phone_visible,
             visionResult.distraction_count_norm, visionResult.focus_ratio,
             audioResult.speech_class, audioResult.speech_confidence,
             audioResult.wpm_norm, audioResult.fluency_score,
             nlpResult.task_class, nlpResult.cognitive_demand, nlpResult.confidence,
+            screenResult.screen_class, screenResult.screen_productivity, screenResult.screen_confidence,
         ]);
 
         let flowState = 2, probs = [0.2, 0.2, 0.2, 0.2, 0.2];
 
         if (this.models.meta) {
             try {
-                const metaTensor = new ort.Tensor('float32', fusedVector, [1, 11]);
+                // Support both 11-dim (legacy) and 14-dim (with screen) meta models
+                const metaInputSize = this.models.meta.inputNames?.length > 0 ? 14 : 14;
+                const metaVector = fusedVector.length === 14 ? fusedVector : fusedVector.slice(0, 11);
+                const metaTensor = new ort.Tensor('float32', metaVector, [1, metaVector.length]);
                 const metaResult = await this.models.meta.run({ input: metaTensor });
                 
                 // Parse label — sklearn RF exports as int64 tensor named 'label' or 'output_label'
@@ -498,6 +530,14 @@ class InferencePipeline {
                 source: nlpSrc,
                 analyzedText: nlpText || null,
             },
+            screen: {
+                appType: screenResult.className || 'Unknown',
+                productivity: (screenResult.screen_productivity * 100).toFixed(0) + '%',
+                confidence: (screenResult.screen_confidence * 100).toFixed(0) + '%',
+                classProbs: screenResult.class_probs || null,
+                features: screenResult,
+                source: screenResult.source || 'inactive',
+            },
             meta: {
                 flowState: this.flowStateNames[flowState],
                 classProbs: probs,
@@ -505,7 +545,7 @@ class InferencePipeline {
                 fusedVector: Array.from(fusedVector),
             },
             featureImportances: this._computeFeatureImportance(Array.from(fusedVector), flowState),
-            dataSources: { vision: visionSrc, audio: audioSrc, nlp: nlpSrc, meta: metaSrc },
+            dataSources: { vision: visionSrc, audio: audioSrc, nlp: nlpSrc, meta: metaSrc, screen: screenResult.source || 'inactive' },
             extensionConnected: !!extData?.extensionConnected,
             timestamp: Date.now(),
         };
@@ -696,6 +736,62 @@ class InferencePipeline {
             console.warn('NLP model inference failed:', e);
             const demo = this.nlpTokenizer.classifyDemo(taskText);
             return { task_class: demo.taskClass, cognitive_demand: demo.cognitiveDemand, confidence: demo.confidence, class_probs: null, source: 'error' };
+        }
+    }
+
+    /** Run Screen Classifier model and extract features */
+    async _runScreenModel() {
+        const defaults = { screen_class: 0, className: 'Unknown', screen_productivity: 0.5, screen_confidence: 0, class_probs: null, source: 'no-screen' };
+        
+        if (!this.models.screen) {
+            // Fake demo logic if no model
+            return {
+                ...defaults,
+                source: 'demo-logic',
+                className: 'Demo Screen',
+                screen_productivity: 0.5,
+                screen_confidence: 0.8
+            };
+        }
+
+        try {
+            const imageData = this.visionPreprocessor.captureForScreenClassifier();
+            if (!imageData) {
+                return { ...defaults, source: this.visionPreprocessor.isActive ? 'capture-failed' : 'no-screen' };
+            }
+
+            const tensor = new ort.Tensor('float32', imageData, [1, 3, 224, 224]);
+            const inputName = this.models.screen.inputNames ? this.models.screen.inputNames[0] : (this.models.screen.session?.inputNames?.[0] || 'input');
+            const feeds = {};
+            feeds[inputName] = tensor;
+            const result = await this.models.screen.run(feeds);
+            
+            const outputName = this.models.screen.outputNames ? this.models.screen.outputNames[0] : (this.models.screen.session?.outputNames?.[0] || Object.keys(result)[0]);
+            const output = result[outputName];
+            
+            const logits = Array.from(output.data);
+            const maxLogit = Math.max(...logits);
+            const expLogits = logits.map(l => Math.exp(l - maxLogit));
+            const sumExp = expLogits.reduce((a, b) => a + b, 0);
+            const probs = expLogits.map(e => e / sumExp);
+            
+            const predictedClass = probs.indexOf(Math.max(...probs));
+            const className = this.screenClasses[predictedClass] || 'Unknown';
+            const productivity = this.screenProductivityMap[predictedClass] || 0.5;
+            
+            console.log(`[Screen CNN] Screen="${className}" (${(Math.max(...probs)*100).toFixed(0)}%), Prod=${productivity}`);
+            
+            return {
+                screen_class: predictedClass,
+                className: className,
+                screen_productivity: productivity,
+                screen_confidence: Math.max(...probs),
+                class_probs: probs,
+                source: 'ONNX Model',
+            };
+        } catch (e) {
+            console.warn('Screen model inference failed:', e);
+            return { ...defaults, source: 'error' };
         }
     }
 

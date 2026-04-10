@@ -18,14 +18,15 @@
 5. [Model 2 — Audio (XGBoost)](#5-model-2--audio-xgboost)
 6. [Model 3 — NLP (DistilBERT)](#6-model-3--nlp-distilbert)
 7. [Model 4 — Meta-Classifier (Random Forest)](#7-model-4--meta-classifier-random-forest)
-8. [Voice State Engine (DSP)](#8-voice-state-engine-dsp)
-9. [ANI Guardian (Decision Engine)](#9-ani-guardian-decision-engine)
-10. [Chrome Extension](#10-chrome-extension)
-11. [Frontend Architecture](#11-frontend-architecture)
-12. [Deployment & Setup](#12-deployment--setup)
-13. [Datasets Reference](#13-datasets-reference)
-14. [Performance Benchmarks](#14-performance-benchmarks)
-15. [Future Roadmap](#15-future-roadmap)
+8. [Model 5 — Screen UI/App Classifier (Custom CNN)](#8-model-5--screen-uiapp-classifier-custom-cnn)
+9. [Voice State Engine (DSP)](#9-voice-state-engine-dsp)
+10. [ANI Guardian (Decision Engine)](#10-ani-guardian-decision-engine)
+11. [Chrome Extension](#11-chrome-extension)
+12. [Frontend Architecture](#12-frontend-architecture)
+13. [Deployment & Setup](#13-deployment--setup)
+14. [Datasets Reference](#14-datasets-reference)
+15. [Performance Benchmarks](#15-performance-benchmarks)
+16. [Future Roadmap](#16-future-roadmap)
 
 ---
 
@@ -33,15 +34,16 @@
 
 ### What is ANI?
 
-**ANI (Adaptive Neural Intelligence)** is a **multimodal cognitive flow state analyzer** that monitors a user's workspace in real-time through three sensory channels:
+**ANI (Adaptive Neural Intelligence)** is a **multimodal cognitive flow state analyzer** that monitors a user's workspace in real-time through four sensory channels:
 
 | Channel | What It Monitors | Technology |
 |---------|-----------------|------------|
 | 👁️ **Vision** | Desk environment — phone, monitors, distractions | YOLOv8-nano via webcam |
 | 🎙️ **Audio** | Voice energy, tone, and activity patterns | XGBoost + Web Audio DSP |
 | 📝 **Text** | Task type & cognitive demand from tab/task titles | DistilBERT transformer |
+| 💻 **Screen** | App/UI recognition and productivity mapping | Custom CNN on Screen Capture |
 
-These three signals are **fused into an 11-dimensional feature vector** and passed through a **calibrated Random Forest meta-classifier** to produce a final prediction of the user's cognitive state.
+These four signals are **fused into a 14-dimensional feature vector** and passed through a **calibrated Random Forest meta-classifier** to produce a final prediction of the user's cognitive state.
 
 ### Five Flow States
 
@@ -139,17 +141,19 @@ These three signals are **fused into an 11-dimensional feature vector** and pass
 1. CAPTURE
    ├── Webcam → 640×640 RGB tensor (NCHW format)
    ├── Microphone → 2048-sample time-domain buffer
+   ├── Screen Capture → 224×224 RGB tensor (NCHW format)
    └── Chrome Extension → Active tab title + tab count
 
 2. EXTRACT FEATURES
    ├── Vision: YOLOv8 → detections → [tab_count_norm, phone_visible,
    │                                    distraction_count_norm, focus_ratio]
+   ├── Screen: Custom CNN → app classification → [screen_class, screen_productivity, screen_conf]
    ├── Audio: Web Audio DSP → 52-dim librosa-style vector
    │          XGBoost → [speech_class, confidence, wpm_norm, fluency_score]
    │          DSP Engine → [energyLevel, tone, activityPercent]
    └── NLP: WordPiece → DistilBERT → [task_class, cognitive_demand, confidence]
 
-3. FUSE (11-dimensional feature vector)
+3. FUSE (14-dimensional feature vector)
    Index  Feature                Source    Range
    ─────────────────────────────────────────────
    0      tab_count_norm         Vision    [0, 1]
@@ -163,6 +167,9 @@ These three signals are **fused into an 11-dimensional feature vector** and pass
    8      task_class_encoded     NLP       {0,1,2,3,4}
    9      cognitive_demand_score NLP       [0, 1]
    10     task_confidence        NLP       [0, 1]
+   11     screen_class           Screen    {0,1,2,3,4,5,6,7}
+   12     screen_productivity    Screen    [0, 1]
+   13     screen_confidence      Screen    [0, 1]
 
 4. CLASSIFY
    Meta-classifier → 5-class flow state + calibrated probabilities
@@ -425,7 +432,7 @@ A **pure JavaScript WordPiece tokenizer** is included (no external dependencies)
 | **Architecture** | Random Forest + Platt Calibration |
 | **Hyperparameter Search** | GridSearchCV (5-fold) |
 | **Best Config** | ~300 trees, max depth 6, balanced class weights |
-| **Input** | 11-dimensional fused feature vector |
+| **Input** | 14-dimensional fused feature vector |
 | **Output** | 5 flow state classes + calibrated probabilities |
 | **Calibration** | Platt Scaling (sigmoid, 5-fold CV) |
 | **ONNX Export** | via `skl2onnx` |
@@ -490,7 +497,53 @@ scores[4] = (1-tab)*0.15 + (1-phone)*0.15 + focus*0.2 + demand*0.15
 
 ---
 
-## 8. Voice State Engine (DSP)
+## 8. Model 5 — Screen UI/App Classifier (Custom CNN)
+
+### Specification
+
+| Property | Value |
+|----------|-------|
+| **Architecture** | Custom 5-block CNN (MobileNet-inspired) |
+| **Input Shape** | `[1, 3, 224, 224]` — RGB, NCHW format |
+| **Output Shape** | `[1, 8]` — 8 class logits |
+| **ONNX Opset** | 14 |
+| **Model Size** | ~1 MB |
+| **Inference Mode** | 224x224 Screen Capture API stream |
+
+### Screen Classes & Productivity Mapping
+
+| Class ID | App/UI Type | Target Productivity | Description |
+|:---:|---|:---:|---|
+| 0 | `VS_CODE` | 0.95 | IDE/Code Editor active |
+| 1 | `TERMINAL` | 0.90 | Command line interface |
+| 2 | `BROWSER_DEV` | 0.80 | Browser with dev tools or documentation |
+| 3 | `BROWSER_GENERAL`| 0.40 | General browsing |
+| 4 | `YOUTUBE` | 0.20 | Video streaming / entertainment |
+| 5 | `SOCIAL_MEDIA`| 0.10 | Social networks |
+| 6 | `GAMING` | 0.05 | Games running |
+| 7 | `DESKTOP_IDLE` | 0.00 | Empty desktop or idle state |
+
+### Output Feature Extraction
+
+The CNN outputs 8 class probabilities, which are then mapped to a continuous productivity score:
+```javascript
+screen_class = argmax(probabilities)
+screen_confidence = max(probabilities)
+screen_productivity = CLASS_PRODUCTIVITY_MAP[screen_class]
+```
+
+### Dataset: Web-scraped & Synthetic UI
+
+| Property | Value |
+|----------|-------|
+| **Source** | Custom web scraper & local captures |
+| **Classes** | 8 specific UI environments |
+| **Size** | Automatically fetched/generated |
+| **Augmentation** | Downsampled to 224x224 |
+
+---
+
+## 9. Voice State Engine (DSP)
 
 ### Overview
 
@@ -536,7 +589,7 @@ else if (rms > 0.08 && label < 3) { label = 3; /* Energized */ }
 
 ---
 
-## 9. ANI Guardian (Decision Engine)
+## 10. ANI Guardian (Decision Engine)
 
 ### Overview
 
@@ -575,7 +628,7 @@ When the Guardian detects sustained poor states (3+ consecutive), it offers a 25
 
 ---
 
-## 10. Chrome Extension
+## 11. Chrome Extension
 
 ### Manifest V3 Extension
 
@@ -605,7 +658,7 @@ The extension classifies tabs into: `work`, `social`, `entertainment`, `news`, `
 
 ---
 
-## 11. Frontend Architecture
+## 12. Frontend Architecture
 
 ### File Structure
 
@@ -637,7 +690,7 @@ frontend/
 
 ---
 
-## 12. Deployment & Setup
+## 13. Deployment & Setup
 
 ### Prerequisites
 
@@ -674,7 +727,7 @@ The Python HTTP server provides:
 
 ---
 
-## 13. Datasets Reference
+## 14. Datasets Reference
 
 ### Summary Table
 
@@ -683,7 +736,8 @@ The Python HTTP server provides:
 | **COCO 2017** | Vision (YOLOv8) | [cocodataset.org](https://cocodataset.org/) | ~389 images | CC BY 4.0 | Auto-downloaded in Colab |
 | **RAVDESS** | Audio (XGBoost) | [Zenodo 1188976](https://zenodo.org/record/1188976) | 1,440 WAV files | CC BY-NC-SA 4.0 | Auto-downloaded in Colab |
 | **Synthetic Tasks** | NLP (DistilBERT) | Generated in-script | ~5,044 samples | N/A | Generated during training |
-| **Simulated Fusion** | Meta-Classifier | Generated from models 1-3 | 2,000 samples | N/A | Generated during training |
+| **Screen UI** | Screen (Custom CNN) | Scraping via colab script | 4,000+ | N/A | Generated during training |
+| **Simulated Fusion** | Meta-Classifier | Generated from models 1-3 & 5 | 2,000 samples | N/A | Generated during training |
 
 > **Note:** All datasets are automatically downloaded during training. No manual dataset setup is required.
 
@@ -697,7 +751,7 @@ See the `documents/datasets/` directory for sample data files:
 
 ---
 
-## 14. Performance Benchmarks
+## 15. Performance Benchmarks
 
 ### Model Performance
 
@@ -720,7 +774,7 @@ See the `documents/datasets/` directory for sample data files:
 
 ---
 
-## 15. Future Roadmap
+## 16. Future Roadmap
 
 1. **Meta-Classifier Retraining** — Retrain on real Voice State features (Energy/Tone/Activity) instead of WPM
 2. **Model Quantization** — INT8 quantize the DistilBERT model to reduce size from 256MB to ~64MB

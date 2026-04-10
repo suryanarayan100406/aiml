@@ -678,6 +678,32 @@
             }
         }
 
+        // ─── SCREEN CARD ──────────────────────────────────────
+        if (result.screen) {
+            $('#metric-screen-app').textContent = result.screen.appType;
+            $('#metric-screen-prod').textContent = result.screen.productivity;
+            $('#metric-screen-conf').textContent = result.screen.confidence;
+
+            // Source badge
+            updateSourceBadge('screen-source-badge', result.screen.source);
+
+            // Class probability bars
+            const screenProbs = result.screen.classProbs;
+            const screenProbContainer = $('#screen-prob-bars');
+            if (screenProbContainer && screenProbs) {
+                const screenClasses = ['Code', 'Terminal', 'Docs', 'Spreadsheet', 'Email', 'Social', 'Video', 'Gaming'];
+                screenProbContainer.innerHTML = screenProbs.map((p, i) => `
+                    <div class="class-prob-row ${i === result.screen.features.screen_class ? 'active' : ''}">
+                        <span class="cp-name">${screenClasses[i]}</span>
+                        <div class="cp-bar"><div class="cp-fill" style="width:${p * 100}%"></div></div>
+                        <span class="cp-val">${(p * 100).toFixed(0)}%</span>
+                    </div>
+                `).join('');
+            } else if (screenProbContainer) {
+                screenProbContainer.innerHTML = '<span class="empty-det">No CNN probabilities</span>';
+            }
+        }
+
         // ─── META CARD ───────────────────────────────────────
         if (result.meta) {
             $('#metric-meta-flow').textContent = result.meta.flowState || result.flowLabel;
