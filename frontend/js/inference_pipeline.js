@@ -170,27 +170,27 @@ class InferencePipeline {
         let visionFeatures;
         let visionSource = 'simulated';
 
-        if (this.visionPreprocessor.mode === 'webcam' && this.models.vision) {
+        if (this.visionPreprocessor.isActive && this.models.vision) {
             // BEST: Real webcam + trained YOLO model
             try {
-                const imageData = this.visionPreprocessor.captureAndPreprocess();
-                if (imageData) {
+                const tensors = this.visionPreprocessor.captureAll();
+                if (tensors.length > 0) {
                     // Run YOLO synchronously is not possible, we'll handle async later
                     // For now use webcam heuristic + last detections
                     visionFeatures = this.visionPreprocessor.extractDemoFeatures();
-                    visionSource = 'webcam';
+                    visionSource = tensors[0].source;
                 } else {
                     visionFeatures = this.visionPreprocessor.extractDemoFeatures();
-                    visionSource = 'webcam-heuristic';
+                    visionSource = 'heuristic';
                 }
             } catch (e) {
                 visionFeatures = this.visionPreprocessor.extractDemoFeatures();
-                visionSource = 'webcam-heuristic';
+                visionSource = 'heuristic';
             }
-        } else if (this.visionPreprocessor.mode === 'webcam') {
-            // Webcam active but no YOLO model — still show webcam feed
+        } else if (this.visionPreprocessor.isActive) {
+            // Webcam/Screen active but no YOLO model
             visionFeatures = this.visionPreprocessor.extractDemoFeatures();
-            visionSource = 'webcam';
+            visionSource = (this.visionPreprocessor.webcamVideo) ? 'webcam' : 'screen';
         } else if (this._extensionConnected && this._extensionTabData) {
             // REAL tab data from Chrome Extension
             const ext = this._extensionTabData;
@@ -204,7 +204,7 @@ class InferencePipeline {
             visionSource = 'extension';
         } else {
             visionFeatures = this.visionPreprocessor.extractDemoFeatures();
-            visionSource = this.visionPreprocessor.mode === 'screen' ? 'screen-capture' : 'simulated';
+            visionSource = 'simulated';
         }
 
         // ─── Audio: Use real mic data if recording ───────────────
@@ -213,26 +213,37 @@ class InferencePipeline {
 
         if (this.audioExtractor.isRecording) {
             const rawFeatures = this.audioExtractor.extractFeatures();
-            const rms = rawFeatures[45];
-            const silenceRatio = rawFeatures[51];
-            const wpm = rawFeatures[49];
-            const zcr = rawFeatures[44];
+            const voiceState = this.audioExtractor.getVoiceState();
 
             // Update live audio level for visualizer
-            this.currentAudioLevel = Math.min(1, rms * 10);
+            this.currentAudioLevel = voiceState.energyValue;
 
-            // Map raw features to meta features
+            // Map Voice State to speech class for the meta-classifier
+            // 0=Erratic → Stressed tone + high energy
+            // 1=Slow → Silent/Quiet energy
+            // 2=Normal → Active energy + Neutral/Calm tone
+            // 3=Fast → Active energy + Animated tone
+            // 4=Rapid → Energized energy + Stressed tone
             let speechClass = 2; // Normal
-            if (silenceRatio > 0.8) speechClass = 1; // Mostly silent / slow
-            else if (wpm > 200) speechClass = 4; // Rapid
-            else if (rms > 0.08 && wpm > 160) speechClass = 3; // Fast energized
-            else if (rms > 0.04 && zcr > 0.15) speechClass = 0; // Erratic
+            if (!voiceState.isActive) {
+                speechClass = 1; // Silent
+            } else if (voiceState.energyLevel === 'Energized' && voiceState.tone === 'Stressed') {
+                speechClass = 4; // Rapid/Intense
+            } else if (voiceState.energyLevel === 'Active' && (voiceState.tone === 'Animated' || voiceState.tone === 'Stressed')) {
+                speechClass = 3; // Fast/Engaged
+            } else if (voiceState.tone === 'Stressed' && voiceState.energyLevel !== 'Quiet') {
+                speechClass = 0; // Erratic
+            }
 
             audioMeta = {
                 speech_class: speechClass,
-                speech_confidence: Math.min(0.95, 0.5 + rms * 5),
-                wpm_norm: Math.min(1, wpm / 220),
-                fluency_score: Math.max(0, 1 - silenceRatio),
+                speech_confidence: Math.min(0.95, 0.5 + voiceState.rms * 5),
+                wpm_norm: voiceState.energyValue,  // Energy as proxy for speech intensity
+                fluency_score: voiceState.activityPercent / 100,
+                // Voice State metadata for UI
+                energyLevel: voiceState.energyLevel,
+                tone: voiceState.tone,
+                activityPercent: voiceState.activityPercent,
             };
             audioSource = 'microphone';
         } else {
@@ -281,11 +292,18 @@ class InferencePipeline {
                 focusRatio: (visionFeatures.focus_ratio * 100).toFixed(0) + '%',
                 features: visionFeatures,
                 source: visionSource,
+                extensionConnected: !!this._extensionConnected,
+                tabCategories: extData ? extData.categories : null,
+                activeTabTitle: extData && extData.activeTab ? extData.activeTab.title : null,
+                activeTabUrl: extData && extData.activeTab ? extData.activeTab.url : null,
+                productivityScore: extData ? extData.productivityScore : null,
+                switchRate: extData ? extData.switchRate : null,
             },
             audio: {
                 speechClass: this.speechClassNames[audioMeta.speech_class],
-                wpm: Math.round(audioMeta.wpm_norm * 220),
-                fluency: (audioMeta.fluency_score * 100).toFixed(0) + '%',
+                energyLevel: audioMeta.energyLevel || this.speechClassNames[audioMeta.speech_class],
+                tone: audioMeta.tone || 'Neutral',
+                activity: audioMeta.activityPercent !== undefined ? audioMeta.activityPercent + '%' : (audioMeta.fluency_score * 100).toFixed(0) + '%',
                 confidence: (audioMeta.speech_confidence * 100).toFixed(0) + '%',
                 features: audioMeta,
                 source: audioSource,
@@ -463,8 +481,9 @@ class InferencePipeline {
             },
             audio: {
                 speechClass: this.speechClassNames[audioResult.speech_class] || 'Normal',
-                wpm: Math.round(audioResult.wpm_norm * 220),
-                fluency: (audioResult.fluency_score * 100).toFixed(0) + '%',
+                energyLevel: audioResult.energyLevel || this.speechClassNames[audioResult.speech_class] || 'Normal',
+                tone: audioResult.tone || 'Neutral',
+                activity: audioResult.activityPercent !== undefined ? audioResult.activityPercent + '%' : (audioResult.fluency_score * 100).toFixed(0) + '%',
                 confidence: (audioResult.speech_confidence * 100).toFixed(0) + '%',
                 features: audioResult,
                 classProbs: audioResult.class_probs || null,
@@ -502,30 +521,53 @@ class InferencePipeline {
         }
 
         try {
-            const imageData = this.visionPreprocessor.captureAndPreprocess();
-            if (!imageData) {
-                return { ...defaults, source: this.visionPreprocessor.mode ? 'capture-failed' : 'no-webcam' };
+            const tensors = this.visionPreprocessor.captureAll();
+            if (!tensors || tensors.length === 0) {
+                return { ...defaults, source: this.visionPreprocessor.isActive ? 'capture-failed' : 'no-webcam' };
             }
 
             const inputNames = this.models.vision.inputNames || ['images'];
             const inputName = inputNames[0];
-            const tensor = new ort.Tensor('float32', imageData, [1, 3, 640, 640]);
-            const feeds = {};
-            feeds[inputName] = tensor;
-            const result = await this.models.vision.run(feeds);
-            
-            const output = result[Object.keys(result)[0]];
             const isCoco = this.visionModelType === 'pretrained_coco';
-            const parsed = this.visionPreprocessor.parseDetections(output, isCoco);
+
+            let combinedDetections = [];
+            let phoneVisible = 0, monitorCount = 0, workToolCount = 0, distractionCount = 0;
             
-            console.log(`[YOLO] ${parsed.detections.length} detections: ${parsed.detections.map(d => d.className + ':' + (d.confidence*100).toFixed(0) + '%').join(', ') || 'none'}`);
+            for (const { source, tensor: imageData } of tensors) {
+                const tensor = new ort.Tensor('float32', imageData, [1, 3, 640, 640]);
+                const feeds = {};
+                feeds[inputName] = tensor;
+                const result = await this.models.vision.run(feeds);
+                
+                const output = result[Object.keys(result)[0]];
+                const parsed = this.visionPreprocessor.parseDetections(output, isCoco, source);
+                
+                combinedDetections = combinedDetections.concat(parsed.detections);
+                
+                phoneVisible = Math.max(phoneVisible, parsed.phone_visible);
+                for (const det of parsed.detections) {
+                    switch(det.classId) {
+                        case 1: monitorCount++; break;
+                        case 2: workToolCount++; break;
+                        case 3: distractionCount++; break;
+                    }
+                }
+            }
+
+            const tab_count_norm = Math.min(monitorCount / 3, 1.0);
+            const distraction_count_norm = Math.min(distractionCount / 5, 1.0);
+            const focus_ratio = monitorCount > 0 || workToolCount > 0
+                ? Math.max(0.3, 1 - (distractionCount / Math.max(1, monitorCount + workToolCount + distractionCount)))
+                : 0.5;
+
+            console.log(`[YOLO] ${combinedDetections.length} detections: ${combinedDetections.map(d => d.className + ':' + (d.confidence*100).toFixed(0) + '%').join(', ') || 'none'}`);
             
             return {
-                tab_count_norm: parsed.tab_count_norm,
-                phone_visible: parsed.phone_visible,
-                distraction_count_norm: parsed.distraction_count_norm,
-                focus_ratio: parsed.focus_ratio,
-                detections: parsed.detections || [],
+                tab_count_norm,
+                phone_visible: phoneVisible,
+                distraction_count_norm,
+                focus_ratio,
+                detections: combinedDetections,
                 source: 'ONNX Model',
             };
         } catch (e) {
@@ -545,24 +587,31 @@ class InferencePipeline {
         // Update live audio level for visualizer
         this.currentAudioLevel = Math.min(1, (rawFeatures[45] || 0) * 10);
         
+        // Always get voice state for UI display
+        const voiceState = this.audioExtractor.getVoiceState();
+        
         if (!this.models.audio) {
+            // Use voice state for classification instead of WPM
             const rms = rawFeatures[45];
             const silenceRatio = rawFeatures[51];
-            const wpm = rawFeatures[49];
+            const energyNorm = rawFeatures[49]; // Voice energy normalized
             
+            // Speech gate: if RMS is very low, no one is really speaking
             let speechClass = 2;
-            if (silenceRatio > 0.4) speechClass = 1;
-            else if (wpm > 200) speechClass = 4;
-            else if (rms > 0.08) speechClass = 3;
-            else if (silenceRatio > 0.3 && rms < 0.03) speechClass = 0;
+            if (rms < 0.008) speechClass = 1; // Silent
+            else if (rms > 0.08) speechClass = 3; // Energized/Active
+            else if (silenceRatio > 0.5 && rms < 0.02) speechClass = 0; // Erratic/Low
             
             return {
                 speech_class: speechClass,
                 speech_confidence: 0.6 + Math.random() * 0.3,
-                wpm_norm: Math.min(1, wpm / 220),
+                wpm_norm: energyNorm,
                 fluency_score: 1 - silenceRatio,
                 class_probs: null,
                 source: 'no-model',
+                energyLevel: voiceState.energyLevel,
+                tone: voiceState.tone,
+                activityPercent: voiceState.activityPercent,
             };
         }
 
@@ -570,23 +619,37 @@ class InferencePipeline {
             const tensor = new ort.Tensor('float32', rawFeatures, [1, 52]);
             const result = await this.models.audio.run({ input: tensor });
             
-            const label = result.label ? Number(result.label.data[0]) : 2;
+            let label = result.label ? Number(result.label.data[0]) : 2;
             const probsData = result.probabilities ? Array.from(result.probabilities.data) : null;
             const confidence = probsData ? Math.max(...probsData) : 0.7;
             
-            console.log(`[XGBoost] Speech class=${label} (${this.speechClassNames[label]}), confidence=${(confidence*100).toFixed(0)}%`);
+            const rms = rawFeatures[45];
+            const energyNorm = rawFeatures[49];
+            
+            // 🔥 HARD GATE: Override AI classification using reliable energy level.
+            // If RMS is too low for real speech, force Silent regardless of model output.
+            if (rms < 0.008) {
+                label = 1; // Silent
+            } else if (rms > 0.08 && label < 3) {
+                label = 3; // At least "Fast/Energized" if loud
+            }
+
+            console.log(`[XGBoost] Speech class=${label} (${this.speechClassNames[label]}), energy=${energyNorm.toFixed(2)}, confidence=${(confidence*100).toFixed(0)}%`);
             
             return {
                 speech_class: label,
                 speech_confidence: confidence,
-                wpm_norm: Math.min(1, rawFeatures[49] / 220),
+                wpm_norm: energyNorm,
                 fluency_score: 1 - rawFeatures[51],
                 class_probs: probsData,
                 source: 'ONNX Model',
+                energyLevel: voiceState.energyLevel,
+                tone: voiceState.tone,
+                activityPercent: voiceState.activityPercent,
             };
         } catch (e) {
             console.warn('Audio model inference failed:', e);
-            return { ...defaults, source: 'error' };
+            return { ...defaults, source: 'error', energyLevel: voiceState.energyLevel, tone: voiceState.tone, activityPercent: voiceState.activityPercent };
         }
     }
 

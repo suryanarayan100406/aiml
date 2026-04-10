@@ -56,6 +56,7 @@ class AniGuardian {
         
         const response = {
             message: message.text,
+            evidence: message.evidence,
             emoji: message.emoji,
             mood: decision.mood,
             severity: decision.severity,

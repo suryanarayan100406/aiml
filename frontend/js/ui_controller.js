@@ -12,7 +12,7 @@
         sessionActive: false,
         sessionStart: null,
         inferenceInterval: null,
-        intervalMs: 30000,
+        intervalMs: 5000,
         results: [],
         pipeline: null,
         guardian: null,
@@ -45,7 +45,11 @@
         setupSettings();
         setupAudioVisualizer();
         setupGuardianControls();
+        startLiveDiagnosticsLoop();
         updateUserBadge();
+
+        // Start live diagnostics feed rendering loop
+        startLiveDiagnosticsLoop();
 
         // Update model status badges after init
         updateModelLoadStatus();
@@ -159,6 +163,71 @@
                 vp.drawDetections(canvas);
             }
 
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+    }
+
+    // ─── Live Diagnostics Loop ────────────────────────────────
+    let diagnosticsLoopRunning = false;
+    function startLiveDiagnosticsLoop() {
+        if (diagnosticsLoopRunning) return;
+        diagnosticsLoopRunning = true;
+        
+        const canvas = $('#yolo-live-feed');
+        if (!canvas) return;
+
+        let lastTime = performance.now();
+        let frames = 0;
+        let fps = 0;
+
+        function render() {
+            // Only draw if the diagnostics panel is active
+            if (state.activePanel === 'diagnostics') {
+                const vp = state.pipeline?.getVisionPreprocessor();
+                if (vp && vp.isActive) {
+                    vp.drawDetections(canvas);
+                    
+                    // Box mapping is done inside drawDetections, we just calculate FPS here
+                    frames++;
+                    const now = performance.now();
+                    if (now - lastTime >= 1000) {
+                        fps = Math.round((frames * 1000) / (now - lastTime));
+                        frames = 0;
+                        lastTime = now;
+                        const fpsLabel = $('#live-framerate');
+                        if (fpsLabel) fpsLabel.textContent = `${fps} FPS`;
+                    }
+                } else {
+                    // Blank canvas text if model not active
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#1e1e2d';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#6b7280';
+                    ctx.font = '16px "JetBrains Mono"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Waiting for Webcam/Model init...', canvas.width / 2, canvas.height / 2);
+                    
+                    // Auto-request webcam if we switch to this panel and it's not active
+                    const vp = state.pipeline?.getVisionPreprocessor();
+                    if (!state.webcamEnabled && state.pipeline && !state.pipeline.demoMode && !window.isWebcamRequesting) {
+                        window.isWebcamRequesting = true;
+                        state.pipeline.enableWebcam().then(ok => {
+                            if (ok) {
+                                state.webcamEnabled = true;
+                                const btn = $('#btn-webcam');
+                                if (btn) {
+                                    btn.innerHTML = '<span>📷</span> Webcam Active';
+                                    btn.classList.add('btn-primary');
+                                    btn.classList.remove('btn-outline');
+                                }
+                            }
+                            // Don't reset isWebcamRequesting right away. Once it's prompted, leave it true or reset on fail.
+                            if (!ok) window.isWebcamRequesting = false;
+                        });
+                    }
+                }
+            }
             requestAnimationFrame(render);
         }
         requestAnimationFrame(render);
@@ -293,7 +362,7 @@
     // ─── Guardian Display ─────────────────────────────────────
     function displayGuardianResponse(response) {
         // Add message
-        addGuardianMessage(response.emoji, response.message, response.mood);
+        addGuardianMessage(response.emoji, response.message, response.mood, response.evidence);
 
         // Update quality badge
         const badge = $('#guardian-quality');
@@ -339,15 +408,26 @@
         }
     }
 
-    function addGuardianMessage(emoji, text, mood = '') {
+    function addGuardianMessage(emoji, text, mood = '', evidence = '') {
         const container = $('#guardian-messages');
         if (!container) return;
 
         const msg = document.createElement('div');
         msg.className = `guardian-message${mood ? ` mood-${mood}` : ''}`;
+        
+        let evidenceHtml = '';
+        if (evidence) {
+            evidenceHtml = `<div class="guardian-evidence-box" style="margin-top: 8px; font-size: 0.75rem; color: #a0a0b0; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 6px; border-left: 2px solid rgba(255,255,255,0.1);">
+                ${evidence}
+            </div>`;
+        }
+
         msg.innerHTML = `
-            <span class="guardian-msg-emoji">${emoji}</span>
-            <span class="guardian-msg-text">${text}</span>
+            <div style="display:flex;">
+                <span class="guardian-msg-emoji">${emoji}</span>
+                <span class="guardian-msg-text">${text}</span>
+            </div>
+            ${evidenceHtml}
         `;
         container.appendChild(msg);
 
@@ -507,32 +587,68 @@
 
                 detList.innerHTML = html;
             }
+            
+            // ─── EXTENSION TELEMETRY MODULE ────────────────────
+            const extStatus = $('#ext-status-badge');
+            if (extStatus) {
+                if (result.vision.extensionConnected) {
+                    extStatus.textContent = '🟢 Connected & Streaming';
+                    extStatus.className = 'badge badge-primary';
+                    $('#ext-tab-count').textContent = result.vision.tabCount || 0;
+                    $('#ext-prod-score').textContent = result.vision.productivityScore !== null ? Math.round(result.vision.productivityScore * 100) + '%' : '-';
+                    $('#ext-dist-tabs').textContent = (result.vision.tabCategories?.distraction || 0) + (result.vision.tabCategories?.news || 0);
+                    $('#ext-comm-tabs').textContent = result.vision.tabCategories?.communication || 0;
+                    $('#ext-active-url').textContent = result.vision.activeTabUrl || result.vision.activeTabTitle || 'Unknown';
+                    $('#ext-active-url').title = result.vision.activeTabUrl || result.vision.activeTabTitle || '';
+                } else {
+                    extStatus.textContent = '🔴 Offline (Waiting for extension...)';
+                    extStatus.className = 'badge badge-danger';
+                }
+            }
         }
 
         // ─── AUDIO CARD ──────────────────────────────────────
         if (result.audio) {
-            $('#metric-speech').textContent = result.audio.speechClass;
-            $('#metric-wpm').textContent = result.audio.wpm;
-            $('#metric-fluency').textContent = result.audio.fluency;
+            $('#metric-speech').textContent = result.audio.energyLevel || result.audio.speechClass;
+            $('#metric-wpm').textContent = result.audio.tone || '—';
+            $('#metric-fluency').textContent = result.audio.activity || '—';
             $('#metric-audio-conf').textContent = result.audio.confidence;
 
             // Source badge
             updateSourceBadge('audio-source-badge', result.audio.source);
 
-            // Class probability bars
-            const audioProbs = result.audio.classProbs;
+            // Voice state visualization bars
             const audioProbContainer = $('#audio-prob-bars');
-            if (audioProbContainer && audioProbs) {
-                const audioClasses = ['Erratic', 'Slow', 'Normal', 'Fast', 'Rapid'];
-                audioProbContainer.innerHTML = audioProbs.map((p, i) => `
-                    <div class="class-prob-row ${i === result.audio.features.speech_class ? 'active' : ''}">
-                        <span class="cp-name">${audioClasses[i]}</span>
-                        <div class="cp-bar"><div class="cp-fill" style="width:${p * 100}%"></div></div>
-                        <span class="cp-val">${(p * 100).toFixed(0)}%</span>
+            if (audioProbContainer && result.audio.energyLevel) {
+                const energyLevels = ['Silent', 'Quiet', 'Active', 'Energized'];
+                const toneLabels = ['Calm', 'Neutral', 'Animated', 'Stressed'];
+                const currentEnergy = energyLevels.indexOf(result.audio.energyLevel);
+                const currentTone = toneLabels.indexOf(result.audio.tone);
+                
+                // Energy bar
+                const energyPercent = Math.max(5, ((currentEnergy + 1) / 4) * 100);
+                // Activity bar 
+                const activityVal = parseInt(result.audio.activity) || 0;
+                
+                audioProbContainer.innerHTML = `
+                    <div class="class-prob-row ${currentEnergy >= 0 ? 'active' : ''}">
+                        <span class="cp-name">Energy</span>
+                        <div class="cp-bar"><div class="cp-fill" style="width:${energyPercent}%"></div></div>
+                        <span class="cp-val">${result.audio.energyLevel}</span>
                     </div>
-                `).join('');
+                    <div class="class-prob-row ${currentTone >= 0 ? 'active' : ''}">
+                        <span class="cp-name">Tone</span>
+                        <div class="cp-bar"><div class="cp-fill" style="width:${Math.max(5, ((currentTone + 1) / 4) * 100)}%"></div></div>
+                        <span class="cp-val">${result.audio.tone}</span>
+                    </div>
+                    <div class="class-prob-row active">
+                        <span class="cp-name">Activity</span>
+                        <div class="cp-bar"><div class="cp-fill" style="width:${Math.max(5, activityVal)}%"></div></div>
+                        <span class="cp-val">${activityVal}%</span>
+                    </div>
+                `;
             } else if (audioProbContainer) {
-                audioProbContainer.innerHTML = '<span class="empty-det">Enable mic to see probabilities</span>';
+                audioProbContainer.innerHTML = '<span class="empty-det">Enable mic to see voice state</span>';
             }
         }
 

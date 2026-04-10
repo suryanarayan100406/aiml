@@ -13,13 +13,10 @@ class VisionPreprocessor {
         this.canvas.width = this.targetSize;
         this.canvas.height = this.targetSize;
         this.ctx = this.canvas.getContext('2d');
-        this.mediaStream = null;
-        this.video = null;
-        this.mode = null; // 'webcam' | 'screen' | null
-
-        // Live preview element (shown in UI)
-        this.previewCanvas = null;
-        this.previewCtx = null;
+        this.webcamStream = null;
+        this.webcamVideo = null;
+        this.screenStream = null;
+        this.screenVideo = null;
 
         // COCO class mapping for pretrained model
         // Maps COCO class index → our desk category
@@ -36,26 +33,26 @@ class VisionPreprocessor {
         };
 
         // Detection results (updated each frame)
-        this.lastDetections = [];
+        this.lastWebcamDetections = [];
+        this.lastScreenDetections = [];
     }
 
     /** Initialize webcam capture */
     async initWebcam() {
         try {
-            this.mediaStream = await navigator.mediaDevices.getUserMedia({
+            this.webcamStream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     width: { ideal: 1280 },
                     height: { ideal: 720 },
                     facingMode: 'environment' // Prefer back camera on mobile
                 }
             });
-            this.video = document.createElement('video');
-            this.video.srcObject = this.mediaStream;
-            this.video.setAttribute('playsinline', '');
-            await this.video.play();
-            this.mode = 'webcam';
+            this.webcamVideo = document.createElement('video');
+            this.webcamVideo.srcObject = this.webcamStream;
+            this.webcamVideo.setAttribute('playsinline', '');
+            await this.webcamVideo.play();
 
-            console.log(`[Vision] Webcam initialized: ${this.video.videoWidth}×${this.video.videoHeight}`);
+            console.log(`[Vision] Webcam initialized: ${this.webcamVideo.videoWidth}×${this.webcamVideo.videoHeight}`);
             return true;
         } catch (err) {
             console.error('Webcam capture failed:', err);
@@ -66,13 +63,12 @@ class VisionPreprocessor {
     /** Initialize screen capture */
     async initScreenCapture() {
         try {
-            this.mediaStream = await navigator.mediaDevices.getDisplayMedia({
+            this.screenStream = await navigator.mediaDevices.getDisplayMedia({
                 video: { width: 1920, height: 1080, frameRate: 1 }
             });
-            this.video = document.createElement('video');
-            this.video.srcObject = this.mediaStream;
-            this.video.play();
-            this.mode = 'screen';
+            this.screenVideo = document.createElement('video');
+            this.screenVideo.srcObject = this.screenStream;
+            await this.screenVideo.play();
             return true;
         } catch (err) {
             console.error('Screen capture failed:', err);
@@ -80,24 +76,48 @@ class VisionPreprocessor {
         }
     }
 
-    /** Stop capture */
+    /** Stop captures */
+    stopWebcam() {
+        if (this.webcamStream) this.webcamStream.getTracks().forEach(t => t.stop());
+        this.webcamStream = null;
+        this.webcamVideo = null;
+        this.lastWebcamDetections = [];
+    }
+
+    stopScreen() {
+        if (this.screenStream) this.screenStream.getTracks().forEach(t => t.stop());
+        this.screenStream = null;
+        this.screenVideo = null;
+        this.lastScreenDetections = [];
+    }
+
     stop() {
-        if (this.mediaStream) {
-            this.mediaStream.getTracks().forEach(t => t.stop());
-        }
-        this.mode = null;
+        this.stopWebcam();
+        this.stopScreen();
     }
 
     /** Check if webcam/screen is active */
-    get isActive() { return this.mode !== null && this.video && this.video.videoWidth > 0; }
+    get isActive() { 
+        const a = (this.webcamVideo && this.webcamVideo.videoWidth > 0);
+        const b = (this.screenVideo && this.screenVideo.videoWidth > 0);
+        return a || b;
+    }
 
-    /** Capture current frame and preprocess for YOLO */
-    captureAndPreprocess() {
-        if (!this.video || !this.video.videoWidth) return null;
+    /** Capture all active frames and preprocess for YOLO */
+    captureAll() {
+        const tensors = [];
+        if (this.webcamVideo && this.webcamVideo.videoWidth > 0) {
+            tensors.push({ source: 'webcam', tensor: this._captureVideo(this.webcamVideo) });
+        }
+        if (this.screenVideo && this.screenVideo.videoWidth > 0) {
+            tensors.push({ source: 'screen', tensor: this._captureVideo(this.screenVideo) });
+        }
+        return tensors;
+    }
 
-        // Draw video frame to canvas at target size (letterboxed)
-        const vw = this.video.videoWidth;
-        const vh = this.video.videoHeight;
+    _captureVideo(videoElement) {
+        const vw = videoElement.videoWidth;
+        const vh = videoElement.videoHeight;
         const scale = Math.min(this.targetSize / vw, this.targetSize / vh);
         const sw = Math.round(vw * scale);
         const sh = Math.round(vh * scale);
@@ -107,7 +127,7 @@ class VisionPreprocessor {
         // Clear canvas (letterbox padding = gray)
         this.ctx.fillStyle = '#808080';
         this.ctx.fillRect(0, 0, this.targetSize, this.targetSize);
-        this.ctx.drawImage(this.video, ox, oy, sw, sh);
+        this.ctx.drawImage(videoElement, ox, oy, sw, sh);
 
         const imageData = this.ctx.getImageData(0, 0, this.targetSize, this.targetSize);
         return this.preprocessImage(imageData);
@@ -138,7 +158,7 @@ class VisionPreprocessor {
      * @param {boolean} isCoco - Whether the model outputs 80 COCO classes
      * @returns {Object} Vision features for the meta-classifier
      */
-    parseDetections(output, isCoco = true) {
+    parseDetections(output, isCoco = true, sourceType = 'webcam') {
         const data = output.data;
         const dims = output.dims;
 
@@ -152,29 +172,21 @@ class VisionPreprocessor {
             numClasses = dims[1] - 4; // subtract 4 box coords
         } else if (dims.length === 2) {
             // [num_detections, 6] — post-processed format (x1,y1,x2,y2,conf,class)
-            return this._parsePostProcessed(data, dims[0], isCoco);
+            return this._parsePostProcessed(data, dims[0], isCoco, sourceType);
         } else {
             console.warn('[Vision] Unexpected output dims:', dims);
             return this._defaultFeatures();
         }
 
-        const confThreshold = 0.25;
-        let phoneVisible = 0;
-        let monitorCount = 0;
-        let workToolCount = 0;
-        let distractionCount = 0;
-        const detections = [];
+        const confThreshold = 0.35; // raised threshold slightly
+        let rawDetections = [];
 
         for (let i = 0; i < numBoxes; i++) {
-            // YOLOv8 raw output: each column is a detection
-            // First 4 rows: cx, cy, w, h
-            // Remaining rows: class confidences
             const cx = data[0 * numBoxes + i];
             const cy = data[1 * numBoxes + i];
             const w = data[2 * numBoxes + i];
             const h = data[3 * numBoxes + i];
 
-            // Find max class confidence
             let maxConf = 0;
             let maxClass = 0;
             for (let c = 0; c < numClasses; c++) {
@@ -187,27 +199,46 @@ class VisionPreprocessor {
 
             if (maxConf < confThreshold) continue;
 
-            // Map to desk category
             let deskCategory = null;
             if (isCoco) {
                 deskCategory = this.cocoToDeskMap[maxClass];
             } else {
-                // Fine-tuned: classes are already our 4 categories
                 const names = ['phone', 'monitor', 'work_tool', 'distraction'];
                 deskCategory = { id: maxClass, name: names[maxClass] || 'unknown' };
             }
 
             if (!deskCategory) continue;
 
-            detections.push({
-                box: [cx - w/2, cy - h/2, cx + w/2, cy + h/2], // xyxy
+            // Skip phone detections on screen share (false positives)
+            if (sourceType === 'screen' && deskCategory.id === 0) continue;
+
+            rawDetections.push({
+                box: [cx - w/2, cy - h/2, cx + w/2, cy + h/2],
                 confidence: maxConf,
                 classId: deskCategory.id,
                 className: deskCategory.name,
             });
+        }
 
-            // Accumulate counts
-            switch (deskCategory.id) {
+        // Apply NMS (Non-Maximum Suppression) to remove duplicates
+        rawDetections.sort((a, b) => b.confidence - a.confidence);
+        const detections = [];
+        const iouThreshold = 0.45;
+
+        for (const _det of rawDetections) {
+            let keep = true;
+            for (const _kept of detections) {
+                if (_kept.classId === _det.classId && this._iou(_det.box, _kept.box) > iouThreshold) {
+                    keep = false;
+                    break;
+                }
+            }
+            if (keep) detections.push(_det);
+        }
+
+        let phoneVisible = 0, monitorCount = 0, workToolCount = 0, distractionCount = 0;
+        for (const det of detections) {
+            switch (det.classId) {
                 case 0: phoneVisible = 1; break;
                 case 1: monitorCount++; break;
                 case 2: workToolCount++; break;
@@ -215,22 +246,37 @@ class VisionPreprocessor {
             }
         }
 
-        this.lastDetections = detections;
+        if (sourceType === 'screen') {
+            this.lastScreenDetections = detections;
+        } else {
+            this.lastWebcamDetections = detections;
+        }
 
         return {
-            tab_count_norm: Math.min(monitorCount / 3, 1.0), // monitors as proxy for tabs
+            tab_count_norm: Math.min(monitorCount / 3, 1.0),
             phone_visible: phoneVisible,
             distraction_count_norm: Math.min(distractionCount / 5, 1.0),
             focus_ratio: monitorCount > 0 || workToolCount > 0
                 ? Math.max(0.3, 1 - (distractionCount / Math.max(1, monitorCount + workToolCount + distractionCount)))
                 : 0.5,
             detections: detections,
-            source: 'yolo-webcam',
+            source: 'yolo-' + sourceType,
         };
     }
 
+    _iou(box1, box2) {
+        const x1 = Math.max(box1[0], box2[0]);
+        const y1 = Math.max(box1[1], box2[1]);
+        const x2 = Math.min(box1[2], box2[2]);
+        const y2 = Math.min(box1[3], box2[3]);
+        const intersection = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+        const area1 = (box1[2] - box1[0]) * (box1[3] - box1[1]);
+        const area2 = (box2[2] - box2[0]) * (box2[3] - box2[1]);
+        return intersection / (area1 + area2 - intersection);
+    }
+
     /** Parse post-processed YOLO output (already NMS'd) */
-    _parsePostProcessed(data, numDetections, isCoco) {
+    _parsePostProcessed(data, numDetections, isCoco, sourceType) {
         let phoneVisible = 0, monitorCount = 0, workToolCount = 0, distractionCount = 0;
         const detections = [];
 
@@ -243,11 +289,20 @@ class VisionPreprocessor {
             let deskCategory = isCoco ? this.cocoToDeskMap[cls] : { id: cls, name: ['phone','monitor','work_tool','distraction'][cls] };
             if (!deskCategory) continue;
 
+            // Skip phone detections on screen share (false positives)
+            if (sourceType === 'screen' && deskCategory.id === 0) continue;
+
+            const x1 = data[offset];
+            const y1 = data[offset+1];
+            const x2 = data[offset+2];
+            const y2 = data[offset+3];
+
             detections.push({
-                box: [data[offset], data[offset+1], data[offset+2], data[offset+3]],
+                box: [x1, y1, x2, y2],
                 confidence: conf,
                 classId: deskCategory.id,
                 className: deskCategory.name,
+                rawBoxes: { cx: (x1+x2)/2, cy: (y1+y2)/2, w: x2-x1, h: y2-y1 }
             });
 
             switch (deskCategory.id) {
@@ -258,7 +313,11 @@ class VisionPreprocessor {
             }
         }
 
-        this.lastDetections = detections;
+        if (sourceType === 'screen') {
+            this.lastScreenDetections = detections;
+        } else {
+            this.lastWebcamDetections = detections;
+        }
 
         return {
             tab_count_norm: Math.min(monitorCount / 3, 1.0),
@@ -268,7 +327,7 @@ class VisionPreprocessor {
                 ? Math.max(0.3, 1 - (distractionCount / Math.max(1, monitorCount + workToolCount + distractionCount)))
                 : 0.5,
             detections: detections,
-            source: 'yolo-webcam',
+            source: 'yolo-' + sourceType,
         };
     }
 
@@ -289,16 +348,22 @@ class VisionPreprocessor {
      * Call this each frame for live visualization.
      */
     drawDetections(targetCanvas) {
-        if (!this.video || !this.video.videoWidth || !targetCanvas) return;
+        if (!targetCanvas) return;
+
+        const activeStreams = [];
+        if (this.webcamVideo && this.webcamVideo.videoWidth > 0) activeStreams.push({ type: 'webcam', vid: this.webcamVideo, det: this.lastWebcamDetections });
+        if (this.screenVideo && this.screenVideo.videoWidth > 0) activeStreams.push({ type: 'screen', vid: this.screenVideo, det: this.lastScreenDetections });
+
+        if (activeStreams.length === 0) return;
 
         const ctx = targetCanvas.getContext('2d');
         const w = targetCanvas.width;
         const h = targetCanvas.height;
+        ctx.clearRect(0, 0, w, h);
 
-        // Draw video frame
-        ctx.drawImage(this.video, 0, 0, w, h);
+        const isSplit = activeStreams.length === 2;
+        const streamH = isSplit ? h / 2 : h;
 
-        // Draw bounding boxes
         const colors = {
             phone: '#EF4444',     // Red — distraction!
             monitor: '#06B6D4',   // Cyan — workspace
@@ -313,48 +378,59 @@ class VisionPreprocessor {
             bottle: '#6B7280',
         };
 
-        const scaleX = w / this.targetSize;
-        const scaleY = h / this.targetSize;
+        for (let i = 0; i < activeStreams.length; i++) {
+            const stream = activeStreams[i];
+            const offsetY = isSplit ? i * streamH : 0;
+            
+            // Draw video frame
+            ctx.drawImage(stream.vid, 0, offsetY, w, streamH);
 
-        for (const det of this.lastDetections) {
-            const [x1, y1, x2, y2] = det.box;
-            const bx = x1 * scaleX;
-            const by = y1 * scaleY;
-            const bw = (x2 - x1) * scaleX;
-            const bh = (y2 - y1) * scaleY;
+            const scaleX = w / this.targetSize;
+            const scaleY = streamH / this.targetSize;
 
-            const color = colors[det.className] || '#8B5CF6';
+            for (const det of stream.det) {
+                const [x1, y1, x2, y2] = det.box;
+                const bx = x1 * scaleX;
+                const by = (y1 * scaleY) + offsetY;
+                const bw = (x2 - x1) * scaleX;
+                const bh = (y2 - y1) * scaleY;
 
-            // Box
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
-            ctx.strokeRect(bx, by, bw, bh);
+                const color = colors[det.className] || '#8B5CF6';
 
-            // Label background
-            const label = `${det.className} ${(det.confidence * 100).toFixed(0)}%`;
-            ctx.font = 'bold 12px Inter, sans-serif';
-            const textW = ctx.measureText(label).width + 8;
-            ctx.fillStyle = color;
-            ctx.fillRect(bx, by - 20, textW, 20);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(bx, by, bw, bh);
 
-            // Label text
+                const label = `${det.className} ${(det.confidence * 100).toFixed(0)}%`;
+                ctx.font = 'bold 12px Inter, sans-serif';
+                const textW = ctx.measureText(label).width + 8;
+                ctx.fillStyle = color;
+                ctx.fillRect(bx, by - 20, textW, 20);
+
+                ctx.fillStyle = '#fff';
+                ctx.fillText(label, bx + 4, by - 6);
+            }
+
+            if (stream.det.length === 0) {
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(0, offsetY + streamH - 30, w, 30);
+                ctx.fillStyle = '#F59E0B';
+                ctx.font = '12px Inter, sans-serif';
+                ctx.fillText(`No objects detected on ${stream.type}`, 10, offsetY + streamH - 10);
+            }
+            
+            // Draw source label
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(0, offsetY, w, 20);
             ctx.fillStyle = '#fff';
-            ctx.fillText(label, bx + 4, by - 6);
-        }
-
-        // Status overlay
-        if (this.lastDetections.length === 0) {
-            ctx.fillStyle = 'rgba(0,0,0,0.5)';
-            ctx.fillRect(0, h - 30, w, 30);
-            ctx.fillStyle = '#F59E0B';
-            ctx.font = '12px Inter, sans-serif';
-            ctx.fillText('No objects detected — point camera at your desk', 10, h - 10);
+            ctx.fillText(`${stream.type.toUpperCase()} FEED`, 10, offsetY + 15);
         }
     }
 
     /** Extract vision features without ONNX model (demo mode) — uses webcam image analysis */
     extractDemoFeatures() {
-        if (!this.video || !this.video.videoWidth) {
+        const vid = this.webcamVideo || this.screenVideo;
+        if (!vid || !vid.videoWidth) {
             return {
                 tab_count_norm: Math.random() * 0.6 + 0.1,
                 phone_visible: Math.random() > 0.7 ? 1 : 0,
@@ -366,10 +442,10 @@ class VisionPreprocessor {
         }
 
         // Analyze actual captured image (heuristic-based when no YOLO model)
-        this.ctx.drawImage(this.video, 0, 0, this.targetSize, this.targetSize);
+        this.ctx.drawImage(vid, 0, 0, this.targetSize, this.targetSize);
         const imageData = this.ctx.getImageData(0, 0, this.targetSize, this.targetSize);
         const result = this._analyzeScreenshot(imageData);
-        result.source = this.mode === 'webcam' ? 'webcam-heuristic' : 'screen-heuristic';
+        result.source = this.webcamVideo ? 'webcam-heuristic' : 'screen-heuristic';
         return result;
     }
 

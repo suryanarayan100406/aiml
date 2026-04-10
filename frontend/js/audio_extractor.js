@@ -3,8 +3,13 @@
  * Extracts MFCC-like features, spectral features, ZCR, RMS, and pitch estimation.
  * Outputs a 52-element Float32Array matching the Python Librosa pipeline.
  *
- * REAL speech rate: Uses onset detection (energy bursts = syllables) to compute
- * actual words-per-minute from live microphone input, NOT a static formula.
+ * VOICE STATE: Instead of WPM (which was unreliable), this now tracks:
+ *   - Voice Energy (RMS) → Silent / Quiet / Active / Energized  
+ *   - Voice Tone (Pitch + Spectral Centroid) → Calm / Neutral / Animated / Stressed
+ *   - Activity Ratio → What % of time the user is speaking
+ * 
+ * These are derived from basic DSP features that the AnalyserNode computes
+ * perfectly reliably — no onset detection, no speech recognition needed.
  */
 class AudioExtractor {
     constructor() {
@@ -15,11 +20,12 @@ class AudioExtractor {
         this.bufferSize = 2048;
         this.sampleRate = 16000;
 
-        // Real speech rate tracking
-        this._onsetHistory = [];       // timestamps of detected speech onsets
-        this._rmsHistory = [];         // rolling RMS values for onset detection
-        this._lastOnsetTime = 0;
-        this._smoothedWpm = 0;
+        // Voice state tracking
+        this._smoothedRms = 0;
+        this._smoothedPitch = 0;
+        this._smoothedCentroid = 0;
+        this._activityHistory = [];     // Rolling boolean: was each frame voiced?
+        this._maxHistorySize = 30;      // ~30 inference cycles for rolling average
         this._frameCount = 0;
     }
 
@@ -27,7 +33,7 @@ class AudioExtractor {
     async init() {
         try {
             this.mediaStream = await navigator.mediaDevices.getUserMedia({
-                audio: { sampleRate: this.sampleRate, channelCount: 1, echoCancellation: true }
+                audio: { sampleRate: this.sampleRate, channelCount: 1, echoCancellation: true, noiseSuppression: true }
             });
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
                 sampleRate: this.sampleRate
@@ -40,10 +46,13 @@ class AudioExtractor {
             source.connect(this.analyser);
 
             this.isRecording = true;
-            this._onsetHistory = [];
-            this._rmsHistory = [];
             this._frameCount = 0;
-            this._smoothedWpm = 0;
+            this._smoothedRms = 0;
+            this._smoothedPitch = 0;
+            this._smoothedCentroid = 0;
+            this._activityHistory = [];
+
+            console.log('[AudioExtractor] ✅ Initialized — tracking Voice Energy, Tone & Activity');
             return true;
         } catch (err) {
             console.error('AudioExtractor init failed:', err);
@@ -76,6 +85,84 @@ class AudioExtractor {
         const data = new Float32Array(this.analyser.fftSize);
         this.analyser.getFloatTimeDomainData(data);
         return data;
+    }
+
+    /**
+     * Get current voice state — computed from reliable DSP features.
+     * Returns an object describing the user's vocal state for flow detection.
+     */
+    getVoiceState() {
+        if (!this.analyser || !this.isRecording) {
+            return {
+                energyLevel: 'Silent',
+                energyValue: 0,
+                tone: 'Calm',
+                toneValue: 0,
+                activityPercent: 0,
+                isActive: false,
+            };
+        }
+
+        const timeData = new Float32Array(this.analyser.fftSize);
+        const freqData = new Float32Array(this.analyser.frequencyBinCount);
+        this.analyser.getFloatTimeDomainData(timeData);
+        this.analyser.getFloatFrequencyData(freqData);
+
+        const rms = this._rmsEnergy(timeData);
+        const pitch = this._estimatePitch(timeData);
+        const centroid = this._spectralCentroid(freqData);
+        const zcr = this._zeroCrossingRate(timeData);
+
+        // Smooth values with EMA
+        this._smoothedRms = this._smoothedRms * 0.6 + rms * 0.4;
+        this._smoothedPitch = this._smoothedPitch * 0.7 + pitch.mean * 0.3;
+        this._smoothedCentroid = this._smoothedCentroid * 0.7 + centroid * 0.3;
+
+        // Is there active voice?
+        const isActive = this._smoothedRms > 0.008;
+
+        // Track activity over time
+        this._activityHistory.push(isActive);
+        if (this._activityHistory.length > this._maxHistorySize) {
+            this._activityHistory.shift();
+        }
+        const activityPercent = this._activityHistory.length > 0
+            ? Math.round((this._activityHistory.filter(Boolean).length / this._activityHistory.length) * 100)
+            : 0;
+
+        // ── Energy Level Classification ───────────────────────
+        let energyLevel = 'Silent';
+        const r = this._smoothedRms;
+        if (r > 0.08) energyLevel = 'Energized';
+        else if (r > 0.03) energyLevel = 'Active';
+        else if (r > 0.008) energyLevel = 'Quiet';
+
+        // ── Tone Classification (from pitch + spectral centroid) ──
+        // Higher pitch + higher centroid = more stressed/excited
+        // Lower pitch + lower centroid = more calm/relaxed
+        let tone = 'Calm';
+        if (isActive) {
+            const p = this._smoothedPitch;
+            const c = this._smoothedCentroid;
+            // Pitch zones: <150Hz = calm, 150-250 = neutral, 250-350 = animated, >350 = stressed
+            if (p > 350 || c > 3000) tone = 'Stressed';
+            else if (p > 250 || c > 2000) tone = 'Animated';
+            else if (p > 150) tone = 'Neutral';
+        }
+
+        return {
+            energyLevel,
+            energyValue: Math.min(1, this._smoothedRms * 10),
+            tone,
+            toneValue: Math.min(1, this._smoothedPitch / 400),
+            activityPercent,
+            isActive,
+            // Raw values for pipeline
+            rms: this._smoothedRms,
+            pitch: this._smoothedPitch,
+            centroid: this._smoothedCentroid,
+            zcr,
+        };
     }
 
     /** Extract 52-dimensional feature vector from current audio state */
@@ -124,10 +211,11 @@ class AudioExtractor {
         // Feature 48: Tempo estimate
         features[48] = this._estimateTempo(timeData);
 
-        // Feature 49-50: WPM and variance (REAL onset-based estimation)
-        const speechRate = this._estimateSpeechRate(timeData);
-        features[49] = speechRate.wpm;
-        features[50] = speechRate.variance;
+        // Feature 49: Voice energy normalized (replaces WPM)
+        features[49] = Math.min(1, features[45] * 10);
+
+        // Feature 50: Pitch normalized
+        features[50] = Math.min(1, pitch.mean / 400);
 
         // Feature 51: Silence ratio
         features[51] = this._silenceRatio(timeData);
@@ -259,67 +347,6 @@ class AudioExtractor {
         const sr = this.audioContext ? this.audioContext.sampleRate : 16000;
         const durationSec = timeData.length / sr;
         return durationSec > 0 ? (peaks / durationSec) * 60 : 100;
-    }
-
-    /**
-     * REAL speech rate estimation using onset detection.
-     * Detects syllable-like energy bursts (onsets) and converts to WPM.
-     * Uses a rolling 10-second window for stable, responsive readings.
-     * Average English word ~ 1.5 syllables, so WPM = onsets_per_min / 1.5
-     */
-    _estimateSpeechRate(timeData) {
-        const now = performance.now();
-        const rms = this._rmsEnergy(timeData);
-
-        // Keep rolling RMS history (last 30 frames ~ 2 seconds)
-        this._rmsHistory.push(rms);
-        if (this._rmsHistory.length > 30) this._rmsHistory.shift();
-
-        // Adaptive threshold based on recent RMS average
-        const avgRms = this._rmsHistory.reduce((a, b) => a + b, 0) / this._rmsHistory.length;
-        const onsetThreshold = Math.max(0.015, avgRms * 2.0);
-
-        // Detect onset: RMS crosses above threshold with minimum 150ms gap
-        const minGapMs = 150;
-        if (rms > onsetThreshold && (now - this._lastOnsetTime) > minGapMs) {
-            this._onsetHistory.push(now);
-            this._lastOnsetTime = now;
-        }
-
-        // Only keep onsets from last 10 seconds
-        const windowMs = 10000;
-        this._onsetHistory = this._onsetHistory.filter(t => now - t < windowMs);
-
-        // Calculate WPM from onset rate
-        let wpm = 0;
-        let variance = 0;
-        if (this._onsetHistory.length >= 2) {
-            const oldest = this._onsetHistory[0];
-            const newest = this._onsetHistory[this._onsetHistory.length - 1];
-            const elapsed = (newest - oldest) / 1000;
-            if (elapsed > 0.5) {
-                const onsetsPerSec = (this._onsetHistory.length - 1) / elapsed;
-                wpm = (onsetsPerSec * 60) / 1.5;
-
-                // Compute variance from inter-onset intervals
-                const intervals = [];
-                for (let i = 1; i < this._onsetHistory.length; i++) {
-                    intervals.push(this._onsetHistory[i] - this._onsetHistory[i - 1]);
-                }
-                const meanInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-                variance = intervals.reduce((a, b) => a + (b - meanInterval) ** 2, 0) / intervals.length;
-                variance = Math.sqrt(variance) / 1000;
-            }
-        }
-
-        // Smooth WPM with exponential moving average
-        const alpha = 0.3;
-        this._smoothedWpm = this._smoothedWpm * (1 - alpha) + wpm * alpha;
-
-        return {
-            wpm: Math.min(300, Math.max(0, Math.round(this._smoothedWpm))),
-            variance: Math.min(1, variance)
-        };
     }
 
     /** Silence ratio — fraction of near-zero samples */

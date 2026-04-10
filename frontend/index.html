@@ -49,6 +49,7 @@
             </div>
             <ul class="nav-links">
                 <li class="active" data-panel="dashboard"><span class="nav-icon">◉</span> Dashboard</li>
+                <li data-panel="diagnostics"><span class="nav-icon">📹</span> Live Diagnostics <span class="nav-badge">BETA</span></li>
                 <li data-panel="session"><span class="nav-icon">▶</span> Session</li>
                 <li data-panel="models"><span class="nav-icon">⬡</span> Models</li>
                 <li data-panel="history"><span class="nav-icon">☰</span> History</li>
@@ -130,13 +131,13 @@
                             <span class="modality-source-badge" id="audio-source-badge">Idle</span>
                         </div>
                         <div class="modality-metrics">
-                            <div class="metric"><span class="metric-label">Speech</span><span class="metric-value metric-highlight" id="metric-speech">—</span></div>
-                            <div class="metric"><span class="metric-label">WPM</span><span class="metric-value" id="metric-wpm">—</span></div>
-                            <div class="metric"><span class="metric-label">Fluency</span><span class="metric-value" id="metric-fluency">—</span></div>
+                            <div class="metric"><span class="metric-label">Energy</span><span class="metric-value metric-highlight" id="metric-speech">—</span></div>
+                            <div class="metric"><span class="metric-label">Tone</span><span class="metric-value" id="metric-wpm">—</span></div>
+                            <div class="metric"><span class="metric-label">Activity</span><span class="metric-value" id="metric-fluency">—</span></div>
                             <div class="metric"><span class="metric-label">Confidence</span><span class="metric-value" id="metric-audio-conf">—</span></div>
                         </div>
                         <div class="detection-details" id="audio-class-probs">
-                            <span class="detail-label">Class Probabilities:</span>
+                            <span class="detail-label">Voice State:</span>
                             <div class="class-prob-bars" id="audio-prob-bars"></div>
                         </div>
                         <div class="audio-viz" id="audio-visualizer"></div>
@@ -283,7 +284,7 @@
                             </div>
                             <div class="info-step">
                                 <span class="step-num">2</span>
-                                <div><strong>Enable microphone</strong><p>Speech patterns reveal cognitive load (WPM, fluency, pauses)</p></div>
+                                <div><strong>Enable microphone</strong><p>Voice energy, tone & activity reveal your engagement level</p></div>
                             </div>
                             <div class="info-step">
                                 <span class="step-num">3</span>
@@ -384,8 +385,9 @@
                         <div class="form-group">
                             <label>Inference Interval</label>
                             <select id="settings-interval">
+                                <option value="5000" selected>Every 5 seconds</option>
                                 <option value="15000">Every 15 seconds</option>
-                                <option value="30000" selected>Every 30 seconds</option>
+                                <option value="30000">Every 30 seconds</option>
                                 <option value="60000">Every 60 seconds</option>
                             </select>
                         </div>
@@ -402,6 +404,57 @@
                         <h3>Data Management</h3>
                         <button id="btn-clear-data" class="btn btn-danger">🗑️ Clear All Data</button>
                         <p class="help-text">This will remove all session history and calibration data from IndexedDB.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Live Diagnostics Panel -->
+            <section id="panel-diagnostics" class="panel">
+                <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="card glass">
+                        <div class="card-header">
+                            <h3>YOLO Live Feed</h3>
+                            <span class="badge" id="live-framerate">0 FPS</span>
+                        </div>
+                        <div style="position:relative; width: 100%; max-width: 640px; margin: 0 auto; background: #0f0f18; border-radius: 8px; overflow: hidden; aspect-ratio: 1/1;">
+                            <canvas id="yolo-live-feed" width="640" height="640" style="width: 100%; height: 100%; display: block;"></canvas>
+                        </div>
+                        <p style="margin-top: 15px; font-size: 0.85rem; color: #a0a0b0; text-align: center;">
+                            The raw tensor input exactly as passed to the ONNX YOLOv8 model. 
+                            Bounding boxes highlight detected objects (Phones, Laptops, Keyboards, Mice).
+                        </p>
+                    </div>
+
+                    <div class="card glass">
+                        <div class="card-header">
+                            <h3>Extension Telemetry</h3>
+                            <span class="badge badge-neutral" id="ext-status-badge">Waiting...</span>
+                        </div>
+                        <div class="stat-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                            <div class="stat-card" style="padding: 15px; border-radius: 12px; background: rgba(255,255,255,0.02); text-align: center;">
+                                <div style="font-size: 2rem; font-weight: 700; color: #a5b4fc;" id="ext-tab-count">0</div>
+                                <div style="font-size: 0.8rem; color: #9ca3af; margin-top: 5px;">Total Tabs</div>
+                            </div>
+                            <div class="stat-card" style="padding: 15px; border-radius: 12px; background: rgba(255,255,255,0.02); text-align: center;">
+                                <div style="font-size: 2rem; font-weight: 700; color: #34d399;" id="ext-prod-score">0%</div>
+                                <div style="font-size: 0.8rem; color: #9ca3af; margin-top: 5px;">Productivity Score</div>
+                            </div>
+                            <div class="stat-card" style="padding: 15px; border-radius: 12px; background: rgba(255,255,255,0.02); text-align: center;">
+                                <div style="font-size: 2rem; font-weight: 700; color: #f87171;" id="ext-dist-tabs">0</div>
+                                <div style="font-size: 0.8rem; color: #9ca3af; margin-top: 5px;">Distractions</div>
+                            </div>
+                            <div class="stat-card" style="padding: 15px; border-radius: 12px; background: rgba(255,255,255,0.02); text-align: center;">
+                                <div style="font-size: 2rem; font-weight: 700; color: #fbbf24;" id="ext-comm-tabs">0</div>
+                                <div style="font-size: 0.8rem; color: #9ca3af; margin-top: 5px;">Comms/Email</div>
+                            </div>
+                            <div class="stat-card" style="grid-column: span 2; padding: 15px; border-radius: 12px; background: rgba(255,255,255,0.02); text-align: left;">
+                                <div style="font-size: 0.8rem; color: #9ca3af; margin-bottom: 5px;">Active Window/Tab URL</div>
+                                <div style="font-size: 1rem; color: #e5e7eb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: monospace;" id="ext-active-url">None</div>
+                            </div>
+                        </div>
+                        <p style="margin-top: 20px; font-size: 0.85rem; color: #a0a0b0; text-align: center;">
+                            Live classification of Chromium tabs via the ANI bridge extension.
+                        </p>
                     </div>
                 </div>
             </section>
@@ -436,12 +489,12 @@
     <div id="toast-container" class="toast-container"></div>
 
     <!-- Scripts -->
-    <script src="js/user_profile.js?v=6"></script>
-    <script src="js/audio_extractor.js?v=6"></script>
-    <script src="js/vision_preprocessor.js?v=6"></script>
-    <script src="js/nlp_tokenizer.js?v=6"></script>
-    <script src="js/inference_pipeline.js?v=6"></script>
-    <script src="js/ani_guardian.js?v=6"></script>
-    <script src="js/ui_controller.js?v=6"></script>
+    <script src="js/user_profile.js?v=7"></script>
+    <script src="js/audio_extractor.js?v=7"></script>
+    <script src="js/vision_preprocessor.js?v=7"></script>
+    <script src="js/nlp_tokenizer.js?v=7"></script>
+    <script src="js/inference_pipeline.js?v=7"></script>
+    <script src="js/ani_guardian.js?v=7"></script>
+    <script src="js/ui_controller.js?v=7"></script>
 </body>
 </html>

@@ -1,0 +1,9 @@
+@echo off
+echo Stage 1: Adding changes...
+git add .
+echo Stage 2: Committing changes...
+git commit -m "Pivot: Replaced WPM-based speech detection with DSP-driven Voice State (Energy/Tone/Activity). Updated UI and inference pipeline."
+echo Stage 3: Pushing to GitHub...
+git push
+echo Done!
+pause
