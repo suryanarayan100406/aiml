@@ -21,12 +21,17 @@ class NLPTokenizer {
     /** Load vocabulary file */
     async loadVocab(vocabUrl = '../models/vocab.txt') {
         try {
-            const response = await fetch(vocabUrl);
-            if (!response.ok) {
-                console.warn('Vocab file not found, using fallback tokenization');
-                return false;
-            }
-            const text = await response.text();
+            const text = await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', vocabUrl, true);
+                xhr.onload = () => {
+                    if (xhr.status === 200 || (xhr.status === 0 && xhr.responseText)) {
+                        resolve(xhr.responseText);
+                    } else reject();
+                };
+                xhr.onerror = reject;
+                xhr.send();
+            });
             const tokens = text.split('\n').filter(t => t.length > 0);
             this.vocab = new Map();
             this.vocabReverse = new Map();

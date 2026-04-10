@@ -79,6 +79,33 @@ class InferencePipeline {
     /** Get real tab count or null if extension not connected */
     getRealTabCount() { return this._extensionTabData?.tabCount ?? null; }
 
+    /** Helper to load external scripts dynamically with a timeout */
+    _loadScript(src) {
+        return new Promise((resolve, reject) => {
+            if (document.querySelector(`script[src="${src}"]`)) {
+                resolve();
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = src;
+            
+            // 8-second timeout to prevent UI indefinite hang
+            const timeout = setTimeout(() => {
+                reject(new Error(`Script load timeout for ${src}`));
+            }, 8000);
+
+            script.onload = () => {
+                clearTimeout(timeout);
+                resolve();
+            };
+            script.onerror = () => {
+                clearTimeout(timeout);
+                reject(new Error(`Failed to load ${src}`));
+            };
+            document.head.appendChild(script);
+        });
+    }
+
     /** Load all ONNX models */
     async loadModels() {
         try {
@@ -86,14 +113,22 @@ class InferencePipeline {
                 await this._loadScript('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js');
             }
 
-            // Detect vision model type from class mapping
+            // Detect vision model type from class mapping using XHR to avoid file:// deadlocks
             try {
-                const mappingResp = await fetch('../models/vision_class_mapping.json');
-                if (mappingResp.ok) {
-                    const mapping = await mappingResp.json();
-                    this.visionModelType = mapping.mode || 'finetuned';
-                    console.log(`[ANI] Vision model type: ${this.visionModelType}`);
-                }
+                const mappingText = await new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', '../models/vision_class_mapping.json', true);
+                    xhr.onload = () => {
+                        if (xhr.status === 200 || (xhr.status === 0 && xhr.responseText)) {
+                            resolve(xhr.responseText);
+                        } else reject();
+                    };
+                    xhr.onerror = reject;
+                    xhr.send();
+                });
+                const mapping = JSON.parse(mappingText);
+                this.visionModelType = mapping.mode || 'finetuned';
+                console.log(`[ANI] Vision model type: ${this.visionModelType}`);
             } catch (e) {
                 console.warn('Could not load vision class mapping, defaulting to finetuned');
             }
@@ -108,10 +143,44 @@ class InferencePipeline {
 
             for (const [name, path] of Object.entries(modelPaths)) {
                 try {
-                    this.models[name] = await ort.InferenceSession.create(path);
+                    // Manually fetch file via async XHR to safely handle missing files on file:// protocol
+                    // Passing paths directly to ORT can cause synchronous main-thread hangs on missing files.
+                    const buffer = await new Promise((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('GET', path, true);
+                        xhr.responseType = 'arraybuffer';
+                        xhr.onload = function() {
+                            // On file:// protocol, status is 0. On http, it's 200.
+                            if (xhr.status === 200 || (xhr.status === 0 && xhr.response)) {
+                                const buf = xhr.response;
+                                // Fast HTML/Text signature check to avoid WASM abort
+                                if (buf.byteLength < 1000) { 
+                                    const bytes = new Uint8Array(buf).slice(0, 15);
+                                    const headerStr = String.fromCharCode(...bytes).toLowerCase();
+                                    if (headerStr.includes('<html') || headerStr.includes('<!doc')) {
+                                        return reject(new Error('HTML 404 block'));
+                                    }
+                                }
+                                resolve(buf);
+                            } else {
+                                reject(new Error(`HTTP ${xhr.status}`));
+                            }
+                        };
+                        xhr.onerror = () => reject(new Error('Network/CORS error'));
+                        xhr.send();
+                    });
+
+                    // Ensure minimum file size for a valid ONNX model (typically > 1KB)
+                    if (!buffer || buffer.byteLength < 1024) {
+                        console.warn(`⚠️ Model file too small or missing: ${name}`);
+                        continue;
+                    }
+
+                    // Create session directly from buffer
+                    this.models[name] = await ort.InferenceSession.create(buffer);
                     console.log(`✅ Model loaded: ${name}`);
                 } catch (e) {
-                    console.warn(`⚠️ Model not found: ${name} (${path})`);
+                    console.warn(`⚠️ Model load skipped (missing or unavailable): ${name} (${path})`);
                 }
             }
 
