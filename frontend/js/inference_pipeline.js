@@ -776,7 +776,7 @@ class InferencePipeline {
             const probs = expLogits.map(e => e / sumExp);
             
             const predictedClass = probs.indexOf(Math.max(...probs));
-            const className = this.screenClasses[predictedClass] || 'Unknown';
+            const className = this.screenClassNames[predictedClass] || 'Unknown';
             const productivity = this.screenProductivityMap[predictedClass] || 0.5;
             
             console.log(`[Screen CNN] Screen="${className}" (${(Math.max(...probs)*100).toFixed(0)}%), Prod=${productivity}`);
