@@ -1,0 +1,108 @@
+{
+  "_info": "Sample COCO 2017 annotation structure used for ANI Flow Optimizer Vision model training. The actual dataset is auto-downloaded from cocodataset.org during training.",
+  "_note": "Only desk-relevant categories are used: cell phone (77), laptop (73), TV/monitor (72), keyboard (76), mouse (74), remote (75), book (84), cup (47), bottle (44)",
+  
+  "images": [
+    {
+      "id": 139,
+      "file_name": "000000000139.jpg",
+      "width": 640,
+      "height": 426,
+      "description": "Example: desk scene with laptop and phone"
+    },
+    {
+      "id": 285,
+      "file_name": "000000000285.jpg",
+      "width": 640,
+      "height": 586,
+      "description": "Example: workspace with keyboard and monitor"
+    },
+    {
+      "id": 632,
+      "file_name": "000000000632.jpg",
+      "width": 480,
+      "height": 640,
+      "description": "Example: table with cup and book"
+    }
+  ],
+
+  "annotations": [
+    {
+      "id": 1,
+      "image_id": 139,
+      "category_id": 77,
+      "category_name": "cell phone",
+      "ani_class": "phone (0)",
+      "bbox": [279.92, 275.88, 44.53, 79.13],
+      "bbox_format": "[x_min, y_min, width, height]",
+      "area": 3523.79,
+      "iscrowd": 0
+    },
+    {
+      "id": 2,
+      "image_id": 139,
+      "category_id": 73,
+      "category_name": "laptop",
+      "ani_class": "monitor (1)",
+      "bbox": [100.0, 150.0, 300.0, 200.0],
+      "bbox_format": "[x_min, y_min, width, height]",
+      "area": 60000,
+      "iscrowd": 0
+    },
+    {
+      "id": 3,
+      "image_id": 285,
+      "category_id": 76,
+      "category_name": "keyboard",
+      "ani_class": "work_tool (2)",
+      "bbox": [120.5, 380.2, 280.0, 90.0],
+      "bbox_format": "[x_min, y_min, width, height]",
+      "area": 25200,
+      "iscrowd": 0
+    },
+    {
+      "id": 4,
+      "image_id": 285,
+      "category_id": 74,
+      "category_name": "mouse",
+      "ani_class": "work_tool (2)",
+      "bbox": [450.0, 400.0, 50.0, 30.0],
+      "bbox_format": "[x_min, y_min, width, height]",
+      "area": 1500,
+      "iscrowd": 0
+    },
+    {
+      "id": 5,
+      "image_id": 632,
+      "category_id": 47,
+      "category_name": "cup",
+      "ani_class": "distraction (3)",
+      "bbox": [200.0, 300.0, 60.0, 80.0],
+      "bbox_format": "[x_min, y_min, width, height]",
+      "area": 4800,
+      "iscrowd": 0
+    }
+  ],
+
+  "yolo_format_examples": {
+    "description": "YOLO training uses center_x, center_y, width, height (all normalized 0-1)",
+    "samples": [
+      "0 0.4713 0.7413 0.0696 0.1857",
+      "1 0.3906 0.5868 0.4688 0.4694",
+      "2 0.4070 0.7967 0.4375 0.1535",
+      "3 0.4792 0.6125 0.1250 0.1250"
+    ]
+  },
+
+  "dataset_statistics": {
+    "total_images_in_coco_val": 5000,
+    "filtered_desk_images": 389,
+    "category_distribution": {
+      "phone (cell phone)": 76,
+      "monitor (laptop + TV)": 198,
+      "work_tool (keyboard + mouse)": 124,
+      "distraction (remote + book + cup + bottle)": 215
+    },
+    "train_val_split": "80/20"
+  }
+}

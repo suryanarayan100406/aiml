@@ -1,0 +1,41 @@
+task_description,label,class_name,cognitive_demand
+"Implement binary search algorithm for the sorted inventory module",0,DEEP_WORK,0.90
+"Debug race condition in the payment processing microservice",0,DEEP_WORK,0.90
+"Refactor authentication middleware to support OAuth2 and SAML",0,DEEP_WORK,0.90
+"Optimize database query performance for the analytics dashboard",0,DEEP_WORK,0.90
+"Design neural network architecture for customer churn prediction",0,DEEP_WORK,0.90
+"Build CI/CD pipeline with Docker containerization and Kubernetes orchestration",0,DEEP_WORK,0.90
+"Migrate legacy monolith to event-driven microservices architecture",0,DEEP_WORK,0.90
+"Implement gradient descent optimization for the recommendation engine",0,DEEP_WORK,0.90
+"Fix typo in README documentation",1,SHALLOW_WORK,0.20
+"Update API version number in package.json",1,SHALLOW_WORK,0.20
+"Rename variable from temp to temperatureReading for clarity",1,SHALLOW_WORK,0.20
+"Add logging statements to the error handler middleware",1,SHALLOW_WORK,0.20
+"Bump dependency versions in requirements.txt",1,SHALLOW_WORK,0.20
+"Clean up unused imports across the utils module",1,SHALLOW_WORK,0.20
+"Format code according to ESLint configuration",1,SHALLOW_WORK,0.20
+"Update environment variable names in .env.example",1,SHALLOW_WORK,0.20
+"Design new onboarding flow wireframes for enterprise customers",2,CREATIVE,0.70
+"Brainstorm gamification features for the learning platform",2,CREATIVE,0.70
+"Create prototype for the mobile-first checkout experience",2,CREATIVE,0.70
+"Design color palette and typography system for brand refresh",2,CREATIVE,0.70
+"Illustrate user journey map for the subscription upgrade path",2,CREATIVE,0.70
+"Wireframe the settings page with accessibility considerations",2,CREATIVE,0.70
+"Prototype interactive data visualization for quarterly reports",2,CREATIVE,0.70
+"Design animation transitions for the navigation menu",2,CREATIVE,0.70
+"Review and approve pending pull requests from the frontend team",3,ADMINISTRATIVE,0.30
+"Organize sprint planning meeting for next iteration",3,ADMINISTRATIVE,0.30
+"Schedule 1-on-1 meetings with direct reports for Q2 reviews",3,ADMINISTRATIVE,0.30
+"Audit access permissions for the production environment",3,ADMINISTRATIVE,0.30
+"Prepare budget allocation report for the engineering department",3,ADMINISTRATIVE,0.30
+"Update project timeline in Jira and notify stakeholders",3,ADMINISTRATIVE,0.30
+"Review compliance documentation for SOC 2 certification",3,ADMINISTRATIVE,0.30
+"Organize team retrospective notes and action items",3,ADMINISTRATIVE,0.30
+"Draft email to engineering team about upcoming deployment freeze",4,COMMUNICATION,0.50
+"Present sprint demo to product stakeholders via video call",4,COMMUNICATION,0.50
+"Write technical blog post about our migration to GraphQL",4,COMMUNICATION,0.50
+"Reply to client questions about API rate limiting policies",4,COMMUNICATION,0.50
+"Draft project proposal for the machine learning infrastructure upgrade",4,COMMUNICATION,0.50
+"Prepare newsletter update about new platform features",4,COMMUNICATION,0.50
+"Create tutorial documentation for the new SDK integration",4,COMMUNICATION,0.50
+"Communicate security patch requirements to downstream teams",4,COMMUNICATION,0.50
