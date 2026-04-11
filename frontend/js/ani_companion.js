@@ -127,6 +127,10 @@ class AniCompanion {
                 new ResizeObserver(() => this._fitModel()).observe(container);
             }
 
+            // Remove the loading overlay div
+            const loader = container.querySelector('.companion-loading');
+            if (loader) loader.style.display = 'none';
+
             console.log('[Companion] ✅ Hiyori loaded successfully!');
             return true;
         } catch (e) {
