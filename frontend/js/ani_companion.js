@@ -95,11 +95,15 @@ class AniCompanion {
             this.canvas.id = 'companion-canvas';
             container.appendChild(this.canvas);
 
+            const rect = container.getBoundingClientRect();
+            const width = rect.width > 0 ? rect.width : 200;
+            const height = rect.height > 0 ? rect.height : 280;
+
             this.app = new PIXI.Application({
                 view: this.canvas,
-                transparent: true,
+                width: width,
+                height: height,
                 backgroundAlpha: 0,
-                resizeTo: container,
                 antialias: true,
             });
 
@@ -124,7 +128,14 @@ class AniCompanion {
 
             // Observe container resizes
             if (window.ResizeObserver) {
-                new ResizeObserver(() => this._fitModel()).observe(container);
+                new ResizeObserver((entries) => {
+                    for (let entry of entries) {
+                        if (entry.contentRect && entry.contentRect.width > 0) {
+                            this.app.renderer.resize(entry.contentRect.width, entry.contentRect.height);
+                            this._fitModel();
+                        }
+                    }
+                }).observe(container);
             }
 
             // Remove the loading overlay div
@@ -142,11 +153,32 @@ class AniCompanion {
 
     _fitModel() {
         if (!this.model || !this.canvas) return;
-        const w = this.canvas.width;
-        const h = this.canvas.height;
+        
+        let w = this.canvas.width;
+        let h = this.canvas.height;
+
+        // If PIXI resize hasn't caught up because the app was hidden, check container directly
+        if (w === 0 || h === 0) {
+            const container = this.canvas.parentElement;
+            if (container && container.clientWidth > 0) {
+                w = container.clientWidth;
+                h = container.clientHeight;
+                this.app.renderer.resize(w, h);
+            } else {
+                return; // Container is still hidden or size 0, wait for next resize event
+            }
+        }
+
+        // Must divide by current scale to get the original base height
+        const currentScaleY = this.model.scale.y || 1;
+        const unscaledHeight = this.model.height / currentScaleY;
 
         // Scale model to fit height with some padding
-        const scale = h / this.model.height * 0.75;
+        const scale = (h / unscaledHeight) * 0.75;
+        
+        // Check for invalid scale just in case
+        if (!scale || isNaN(scale) || scale <= 0) return;
+        
         this.model.scale.set(scale);
 
         // Center horizontally, anchor near bottom

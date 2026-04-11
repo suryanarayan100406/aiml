@@ -54,18 +54,6 @@
         // Update model status badges after init
         updateModelLoadStatus();
 
-        // Initialize Live2D companion (non-blocking)
-        updateLoadingStatus('Loading companion...', 90);
-        state.companion = new AniCompanion();
-        state.companion.init('companion-canvas-container').then(loaded => {
-            if (loaded) {
-                console.log('[UI] Companion loaded successfully');
-                showToast('✨', 'Hiyori companion loaded!');
-            } else {
-                console.warn('[UI] Companion could not load — continuing without it');
-            }
-        });
-
         // PiP button
         const pipBtn = $('#btn-pip-companion');
         if (pipBtn) {
@@ -78,6 +66,18 @@
         setTimeout(() => {
             $('#loading-overlay').classList.add('fade-out');
             $('#app').classList.remove('hidden');
+            
+            // Initialize Live2D companion (non-blocking) AFTER app is visible so canvas isn't 0x0
+            state.companion = new AniCompanion();
+            state.companion.init('companion-canvas-container').then(loaded => {
+                if (loaded) {
+                    console.log('[UI] Companion loaded successfully');
+                    showToast('✨', 'Hiyori companion loaded!');
+                } else {
+                    console.warn('[UI] Companion could not load — continuing without it');
+                }
+            });
+
             setTimeout(() => $('#loading-overlay').style.display = 'none', 600);
         }, 500);
     }
