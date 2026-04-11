@@ -1132,7 +1132,7 @@
         if (!state.pipeline) return;
         const models = state.pipeline.models || {};
         const loaded = Object.keys(models);
-        const total = 4;
+        const total = 3; // Vision, Audio, Meta (NLP moved to keyword engine)
 
         // Update sidebar status indicator
         if (loaded.length >= 2) {
@@ -1151,7 +1151,6 @@
         const statusMap = {
             vision: '#vision-model-status',
             audio: '#audio-model-status',
-            nlp: '#nlp-model-status',
             meta: '#meta-model-status',
         };
 
@@ -1168,6 +1167,18 @@
             } else {
                 tag.textContent = 'Not loaded';
                 tag.className = 'tag tag-offline';
+                tag.style.cssText = '';
+            }
+        }
+        
+        // NLP is now a zero-dependency Keyword Engine, always "loaded"
+        const nlpRow = $('#nlp-model-status');
+        if (nlpRow) {
+            const nlpTag = nlpRow.querySelector('.tag');
+            if (nlpTag) {
+                nlpTag.textContent = 'Ready (Native) ✅';
+                nlpTag.className = 'tag tag-online';
+                nlpTag.style.cssText = 'background: rgba(16,185,129,0.15); color: #10B981; border: 1px solid rgba(16,185,129,0.3);';
             }
         }
     }

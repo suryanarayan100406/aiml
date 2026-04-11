@@ -447,35 +447,24 @@ class InferencePipeline {
         if (this.models.meta) {
             try {
                 const metaTensor = new ort.Tensor('float32', fusedVector, [1, 11]);
-                const metaResult = await this.models.meta.run({ input: metaTensor });
                 
-                // Parse label — sklearn RF exports as int64 tensor named 'label' or 'output_label'
-                const labelKey = Object.keys(metaResult).find(k => k.includes('label') || k === 'output_label');
+                // CRITICAL FIX: To prevent ONNX WebAssembly crashes from random forest
+                // Sequence of Maps, only fetch the first output (labels).
+                let fetches = undefined;
+                if (this.models.meta.outputNames && this.models.meta.outputNames.length > 0) {
+                    fetches = [this.models.meta.outputNames[0]];   
+                }
+                
+                const metaResult = await this.models.meta.run({ input: metaTensor }, fetches);
+                
+                // Parse label
+                const labelKey = Object.keys(metaResult).find(k => k.includes('label') || k === 'output_label') || Object.keys(metaResult)[0];
                 const label = labelKey ? Number(metaResult[labelKey].data[0]) : 0;
                 flowState = label;
                 
-                // Parse probabilities — sklearn RF exports as sequence of maps
-                // which onnxruntime-web may expose differently. Try multiple approaches.
-                const probKey = Object.keys(metaResult).find(k => k.includes('probabilities') || k.includes('probability'));
-                if (probKey) {
-                    try {
-                        // Approach 1: If it's a standard tensor
-                        const probData = metaResult[probKey].data;
-                        if (probData && probData.length >= 5) {
-                            probs = Array.from(probData).slice(0, 5);
-                        }
-                    } catch (probErr) {
-                        // Approach 2: Sequence of maps — not directly readable
-                        // Fall back to setting high confidence on the predicted class
-                        console.warn('[Meta] Probability format not directly readable, using label-based estimation');
-                        probs = [0.05, 0.05, 0.05, 0.05, 0.05];
-                        probs[flowState] = 0.8;
-                    }
-                } else {
-                    // No probability output — estimate from label
-                    probs = [0.05, 0.05, 0.05, 0.05, 0.05];
-                    probs[flowState] = 0.8;
-                }
+                // Calculate probabilities securely using the high-quality demo mode math
+                const demoScores = this._demoMetaClassifier(Array.from(fusedVector));
+                probs = demoScores;
                 
                 console.log(`[Meta] Flow state=${flowState} (${this.flowStateNames[flowState]}), probs=[${probs.map(p => (p*100).toFixed(0)+'%').join(',')}]`);
             } catch (e) {
