@@ -607,6 +607,66 @@
             }
         }
 
+        // ─── SCREEN CARD ─────────────────────────────────────
+        if (result.screen) {
+            const screenClassLabels = {
+                'PRODUCTIVE_CODE': '🖥️ Coding',
+                'PRODUCTIVE_DOCS': '📄 Documents',
+                'COMMUNICATION': '💬 Communication',
+                'DISTRACTION': '🎮 Distraction',
+                'NEUTRAL': '📂 Neutral',
+            };
+            const screenClassColors = {
+                'PRODUCTIVE_CODE': '#10B981',
+                'PRODUCTIVE_DOCS': '#3B82F6',
+                'COMMUNICATION': '#F59E0B',
+                'DISTRACTION': '#EF4444',
+                'NEUTRAL': '#6B7280',
+            };
+
+            const screenLabel = screenClassLabels[result.screen.className] || result.screen.className;
+            const screenColor = screenClassColors[result.screen.className] || '#8B5CF6';
+
+            $('#metric-screen-class').textContent = screenLabel;
+            $('#metric-screen-class').style.color = screenColor;
+            $('#metric-screen-prod').textContent = result.screen.productivityScore;
+            $('#metric-screen-conf').textContent = result.screen.confidence;
+
+            // Source badge
+            updateSourceBadge('screen-source-badge', result.screen.source);
+
+            // Probability bars
+            const screenProbBars = $('#screen-prob-bars');
+            if (screenProbBars && result.screen.rawProbs) {
+                const classNames = ['Code', 'Docs', 'Chat', 'Distract', 'Neutral'];
+                const classColors = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#6B7280'];
+                let html = '';
+                for (let i = 0; i < classNames.length; i++) {
+                    const pct = (result.screen.rawProbs[i] * 100).toFixed(0);
+                    html += `<div class="prob-row" style="margin-bottom:3px;">
+                        <span style="font-size:0.65rem;color:#9ca3af;width:50px;display:inline-block;">${classNames[i]}</span>
+                        <div class="prob-bar" style="flex:1;height:8px;background:rgba(255,255,255,0.05);border-radius:4px;margin:0 6px;">
+                            <div style="width:${pct}%;height:100%;background:${classColors[i]};border-radius:4px;transition:width 0.4s ease;"></div>
+                        </div>
+                        <span style="font-size:0.6rem;color:#9ca3af;width:28px;text-align:right;">${pct}%</span>
+                    </div>`;
+                }
+                screenProbBars.innerHTML = html;
+            }
+        } else {
+            // No screen capture active
+            const screenClass = $('#metric-screen-class');
+            if (screenClass) {
+                screenClass.textContent = 'No Screen Share';
+                screenClass.style.color = '#6B7280';
+            }
+            const screenProd = $('#metric-screen-prod');
+            if (screenProd) screenProd.textContent = '—';
+            const screenConf = $('#metric-screen-conf');
+            if (screenConf) screenConf.textContent = '—';
+            updateSourceBadge('screen-source-badge', 'idle');
+        }
+
         // ─── AUDIO CARD ──────────────────────────────────────
         if (result.audio) {
             $('#metric-speech').textContent = result.audio.energyLevel || result.audio.speechClass;
@@ -675,32 +735,6 @@
                 `).join('');
             } else if (nlpProbContainer) {
                 nlpProbContainer.innerHTML = '<span class="empty-det">No NLP probabilities</span>';
-            }
-        }
-
-        // ─── SCREEN CARD ──────────────────────────────────────
-        if (result.screen) {
-            $('#metric-screen-app').textContent = result.screen.appType;
-            $('#metric-screen-prod').textContent = result.screen.productivity;
-            $('#metric-screen-conf').textContent = result.screen.confidence;
-
-            // Source badge
-            updateSourceBadge('screen-source-badge', result.screen.source);
-
-            // Class probability bars
-            const screenProbs = result.screen.classProbs;
-            const screenProbContainer = $('#screen-prob-bars');
-            if (screenProbContainer && screenProbs) {
-                const screenClasses = ['Code', 'Terminal', 'Docs', 'Spreadsheet', 'Email', 'Social', 'Video', 'Gaming'];
-                screenProbContainer.innerHTML = screenProbs.map((p, i) => `
-                    <div class="class-prob-row ${i === result.screen.features.screen_class ? 'active' : ''}">
-                        <span class="cp-name">${screenClasses[i]}</span>
-                        <div class="cp-bar"><div class="cp-fill" style="width:${p * 100}%"></div></div>
-                        <span class="cp-val">${(p * 100).toFixed(0)}%</span>
-                    </div>
-                `).join('');
-            } else if (screenProbContainer) {
-                screenProbContainer.innerHTML = '<span class="empty-det">No CNN probabilities</span>';
             }
         }
 

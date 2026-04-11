@@ -1,6 +1,6 @@
 /**
- * InferencePipeline — ONNX Runtime Web orchestrator for all 4 models.
- * Runs: Vision → Audio → NLP → Meta-classifier fusion.
+ * InferencePipeline — ONNX Runtime Web orchestrator for all 5 models.
+ * Runs: Vision (YOLO) + Screen (MobileNet) → Audio → NLP → Meta-classifier fusion.
  * Falls back to demo mode when ONNX models are not available.
  */
 class InferencePipeline {
@@ -11,17 +11,14 @@ class InferencePipeline {
         this.audioExtractor = null;
         this.visionPreprocessor = null;
         this.nlpTokenizer = null;
+        this.screenClassifier = null;  // Screen productivity classifier
         this.flowStateNames = ['PSEUDO_WORKING', 'TASK_SWITCHING', 'DISTRACTED', 'SOFT_FLOW', 'DEEP_FLOW'];
         this.flowEmojis = ['🔴', '🟠', '🟡', '🟢', '🟣'];
         this.flowLabels = ['Pseudo-Working', 'Task-Switching', 'Distracted', 'Soft Flow', 'Deep Flow'];
         this.speechClassNames = ['Erratic', 'Slow', 'Normal', 'Fast', 'Rapid'];
         this.taskClassNames = ['DEEP_WORK', 'SHALLOW_WORK', 'CREATIVE', 'ADMINISTRATIVE', 'COMMUNICATION'];
+        this.screenClassNames = ['PRODUCTIVE_CODE', 'PRODUCTIVE_DOCS', 'COMMUNICATION', 'DISTRACTION', 'NEUTRAL'];
         this.demandMap = { 0: 0.9, 1: 0.2, 2: 0.7, 3: 0.3, 4: 0.5 };
-
-        // Screen classifier classes + productivity mapping
-        this.screenClassNames = ['Code Editor', 'Terminal/CLI', 'Documentation', 'Spreadsheet',
-                                  'Email/Chat', 'Social Media', 'Video/Streaming', 'Gaming'];
-        this.screenProductivityMap = { 0: 0.95, 1: 0.90, 2: 0.80, 3: 0.70, 4: 0.50, 5: 0.10, 6: 0.15, 7: 0.05 };
 
         // Vision model type: 'finetuned' (4 classes) or 'pretrained_coco' (80 classes)
         this.visionModelType = 'finetuned';
@@ -33,6 +30,9 @@ class InferencePipeline {
         // Live audio level (0-1) updated every frame
         this.currentAudioLevel = 0;
         this._audioLevelAnimFrame = null;
+
+        // Last screen classification result (for UI)
+        this.lastScreenResult = null;
     }
 
     /** Initialize all components */
@@ -41,6 +41,7 @@ class InferencePipeline {
         this.audioExtractor = new AudioExtractor();
         this.visionPreprocessor = new VisionPreprocessor();
         this.nlpTokenizer = new NLPTokenizer();
+        this.screenClassifier = new ScreenClassifier();
 
         // Listen for real tab data from Chrome Extension
         this._setupExtensionBridge();
@@ -48,6 +49,11 @@ class InferencePipeline {
         // Always try to load models — loadModels() will set demoMode=true
         // if models aren't available, or demoMode=false if they load successfully
         await this.loadModels();
+
+        // Load screen classifier (non-blocking — it's optional)
+        this.screenClassifier.load().then(ok => {
+            if (ok) console.log('✅ Screen classifier ready');
+        });
 
         await this.nlpTokenizer.loadVocab();
         return true;
@@ -79,33 +85,6 @@ class InferencePipeline {
     /** Get real tab count or null if extension not connected */
     getRealTabCount() { return this._extensionTabData?.tabCount ?? null; }
 
-    /** Helper to load external scripts dynamically with a timeout */
-    _loadScript(src) {
-        return new Promise((resolve, reject) => {
-            if (document.querySelector(`script[src="${src}"]`)) {
-                resolve();
-                return;
-            }
-            const script = document.createElement('script');
-            script.src = src;
-            
-            // 8-second timeout to prevent UI indefinite hang
-            const timeout = setTimeout(() => {
-                reject(new Error(`Script load timeout for ${src}`));
-            }, 8000);
-
-            script.onload = () => {
-                clearTimeout(timeout);
-                resolve();
-            };
-            script.onerror = () => {
-                clearTimeout(timeout);
-                reject(new Error(`Failed to load ${src}`));
-            };
-            document.head.appendChild(script);
-        });
-    }
-
     /** Load all ONNX models */
     async loadModels() {
         try {
@@ -113,22 +92,14 @@ class InferencePipeline {
                 await this._loadScript('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js');
             }
 
-            // Detect vision model type from class mapping using XHR to avoid file:// deadlocks
+            // Detect vision model type from class mapping
             try {
-                const mappingText = await new Promise((resolve, reject) => {
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('GET', '../models/vision_class_mapping.json', true);
-                    xhr.onload = () => {
-                        if (xhr.status === 200 || (xhr.status === 0 && xhr.responseText)) {
-                            resolve(xhr.responseText);
-                        } else reject();
-                    };
-                    xhr.onerror = reject;
-                    xhr.send();
-                });
-                const mapping = JSON.parse(mappingText);
-                this.visionModelType = mapping.mode || 'finetuned';
-                console.log(`[ANI] Vision model type: ${this.visionModelType}`);
+                const mappingResp = await fetch('../models/vision_class_mapping.json');
+                if (mappingResp.ok) {
+                    const mapping = await mappingResp.json();
+                    this.visionModelType = mapping.mode || 'finetuned';
+                    console.log(`[ANI] Vision model type: ${this.visionModelType}`);
+                }
             } catch (e) {
                 console.warn('Could not load vision class mapping, defaulting to finetuned');
             }
@@ -138,49 +109,14 @@ class InferencePipeline {
                 audio: '../models/speech_classifier.onnx',
                 nlp: '../models/task_nlp_classifier.onnx',
                 meta: '../models/meta_flow_classifier.onnx',
-                screen: '../models/screen_classifier.onnx',
             };
 
             for (const [name, path] of Object.entries(modelPaths)) {
                 try {
-                    // Manually fetch file via async XHR to safely handle missing files on file:// protocol
-                    // Passing paths directly to ORT can cause synchronous main-thread hangs on missing files.
-                    const buffer = await new Promise((resolve, reject) => {
-                        const xhr = new XMLHttpRequest();
-                        xhr.open('GET', path, true);
-                        xhr.responseType = 'arraybuffer';
-                        xhr.onload = function() {
-                            // On file:// protocol, status is 0. On http, it's 200.
-                            if (xhr.status === 200 || (xhr.status === 0 && xhr.response)) {
-                                const buf = xhr.response;
-                                // Fast HTML/Text signature check to avoid WASM abort
-                                if (buf.byteLength < 1000) { 
-                                    const bytes = new Uint8Array(buf).slice(0, 15);
-                                    const headerStr = String.fromCharCode(...bytes).toLowerCase();
-                                    if (headerStr.includes('<html') || headerStr.includes('<!doc')) {
-                                        return reject(new Error('HTML 404 block'));
-                                    }
-                                }
-                                resolve(buf);
-                            } else {
-                                reject(new Error(`HTTP ${xhr.status}`));
-                            }
-                        };
-                        xhr.onerror = () => reject(new Error('Network/CORS error'));
-                        xhr.send();
-                    });
-
-                    // Ensure minimum file size for a valid ONNX model (typically > 1KB)
-                    if (!buffer || buffer.byteLength < 1024) {
-                        console.warn(`⚠️ Model file too small or missing: ${name}`);
-                        continue;
-                    }
-
-                    // Create session directly from buffer
-                    this.models[name] = await ort.InferenceSession.create(buffer);
+                    this.models[name] = await ort.InferenceSession.create(path);
                     console.log(`✅ Model loaded: ${name}`);
                 } catch (e) {
-                    console.warn(`⚠️ Model load skipped (missing or unavailable): ${name} (${path})`);
+                    console.warn(`⚠️ Model not found: ${name} (${path})`);
                 }
             }
 
@@ -282,6 +218,18 @@ class InferencePipeline {
             visionSource = 'simulated';
         }
 
+        // ─── Screen Productivity: MobileNetV3 classification ─────
+        let screenResult = null;
+        if (this.visionPreprocessor.screenVideo && this.visionPreprocessor.screenVideo.videoWidth > 0) {
+            // Use screen classifier (sync fallback in demo mode)
+            screenResult = this.screenClassifier._fallbackClassify(this.visionPreprocessor.screenVideo);
+            this.lastScreenResult = screenResult;
+
+            // Override focus_ratio with screen productivity score (Option A)
+            visionFeatures.focus_ratio = screenResult.productivityScore;
+            visionSource = visionSource === 'simulated' ? 'screen-classifier' : visionSource + ' + screen';
+        }
+
         // ─── Audio: Use real mic data if recording ───────────────
         let audioMeta = { speech_class: 2, speech_confidence: 0.8, wpm_norm: 0.55, fluency_score: 0.7 };
         let audioSource = 'simulated';
@@ -331,13 +279,7 @@ class InferencePipeline {
             nlpResult = this.nlpTokenizer.classifyDemo(taskText);
         }
 
-        // ─── Screen: Classify app/UI if screen/webcam is active ──
-        let screenResult = { screen_class: 0, screen_productivity: 0.5, screen_confidence: 0.3, className: 'Unknown', source: 'inactive' };
-        if (this.visionPreprocessor.isActive) {
-            screenResult = await this._runScreenModel();
-        }
-
-        // Fuse into 14-feature vector (11 original + 3 screen)
+        // Fuse into 11-feature vector
         const fusedVector = [
             visionFeatures.tab_count_norm,
             visionFeatures.phone_visible,
@@ -350,12 +292,9 @@ class InferencePipeline {
             nlpResult.taskClass,
             nlpResult.cognitiveDemand,
             nlpResult.confidence,
-            screenResult.screen_class,
-            screenResult.screen_productivity,
-            screenResult.screen_confidence,
         ];
 
-        // Demo meta-classifier — weighted scoring (uses first 11 features)
+        // Demo meta-classifier — weighted scoring
         const flowScores = this._demoMetaClassifier(fusedVector);
         const predictedClass = flowScores.indexOf(Math.max(...flowScores));
 
@@ -383,6 +322,12 @@ class InferencePipeline {
                 productivityScore: extData ? extData.productivityScore : null,
                 switchRate: extData ? extData.switchRate : null,
             },
+            screen: screenResult ? {
+                className: screenResult.className,
+                confidence: (screenResult.confidence * 100).toFixed(0) + '%',
+                productivityScore: (screenResult.productivityScore * 100).toFixed(0) + '%',
+                source: screenResult.source,
+            } : null,
             audio: {
                 speechClass: this.speechClassNames[audioMeta.speech_class],
                 energyLevel: audioMeta.energyLevel || this.speechClassNames[audioMeta.speech_class],
@@ -399,42 +344,31 @@ class InferencePipeline {
                 features: nlpResult,
                 source: 'local-nlp',
             },
-            screen: {
-                appType: screenResult.className,
-                productivity: (screenResult.screen_productivity * 100).toFixed(0) + '%',
-                confidence: (screenResult.screen_confidence * 100).toFixed(0) + '%',
-                classProbs: screenResult.class_probs || null,
-                features: screenResult,
-                source: screenResult.source,
-            },
             featureImportances: this._computeFeatureImportance(fusedVector, predictedClass),
-            dataSources: { vision: visionSource, audio: audioSource, nlp: 'local-nlp', screen: screenResult.source },
+            dataSources: { vision: visionSource, audio: audioSource, nlp: 'local-nlp' },
             timestamp: Date.now(),
         };
     }
 
     /** Demo meta-classifier — uses interpretable rules derived from training data patterns */
     _demoMetaClassifier(features) {
-        const [tabNorm, phoneVis, distNorm, focusR, spClass, spConf, wpmN, fluency, taskCls, cogDemand, taskConf, screenCls, screenProd, screenConf] = features;
+        const [tabNorm, phoneVis, distNorm, focusR, spClass, spConf, wpmN, fluency, taskCls, cogDemand, taskConf] = features;
         const scores = new Float32Array(5);
 
-        // Use screen productivity to boost/penalize flow scores
-        const screenBoost = (screenProd !== undefined && screenProd !== null) ? screenProd : 0.5;
-
-        // PSEUDO_WORKING: many tabs, low demand, low fluency, low screen productivity
-        scores[0] = (tabNorm * 0.25 + (1 - cogDemand) * 0.25 + (1 - fluency) * 0.15 + (1 - focusR) * 0.15 + (1 - screenBoost) * 0.2) * 0.8;
+        // PSEUDO_WORKING: many tabs, low demand, low fluency
+        scores[0] = (tabNorm * 0.3 + (1 - cogDemand) * 0.3 + (1 - fluency) * 0.2 + (1 - focusR) * 0.2) * 0.8;
 
         // TASK_SWITCHING: many tabs, fast speech, admin tasks
-        scores[1] = (tabNorm * 0.30 + wpmN * 0.20 + (taskCls === 3 ? 0.25 : 0.05) + distNorm * 0.1 + (1 - screenBoost) * 0.15) * 0.8;
+        scores[1] = (tabNorm * 0.35 + wpmN * 0.25 + (taskCls === 3 ? 0.3 : 0.05) + distNorm * 0.1) * 0.8;
 
-        // DISTRACTED: phone visible, many distractions, low focus, unproductive screen
-        scores[2] = (phoneVis * 0.30 + distNorm * 0.25 + (1 - focusR) * 0.15 + (1 - taskConf) * 0.1 + (1 - screenBoost) * 0.2) * 0.9;
+        // DISTRACTED: phone visible, many distractions, low focus
+        scores[2] = (phoneVis * 0.35 + distNorm * 0.3 + (1 - focusR) * 0.25 + (1 - taskConf) * 0.1) * 0.9;
 
-        // SOFT_FLOW: moderate focus, normal speech, decent demand, productive screen
-        scores[3] = (focusR * 0.25 + fluency * 0.15 + cogDemand * 0.15 + (1 - distNorm) * 0.1 + (1 - phoneVis) * 0.1 + screenBoost * 0.25) * 0.85;
+        // SOFT_FLOW: moderate focus, normal speech, decent demand
+        scores[3] = (focusR * 0.3 + fluency * 0.2 + cogDemand * 0.2 + (1 - distNorm) * 0.15 + (1 - phoneVis) * 0.15) * 0.85;
 
-        // DEEP_FLOW: high focus, low distractions, high demand, steady speech, productive screen
-        scores[4] = (focusR * 0.20 + (1 - tabNorm) * 0.10 + (1 - phoneVis) * 0.10 + (1 - distNorm) * 0.10 + cogDemand * 0.15 + fluency * 0.10 + screenBoost * 0.25) * 0.9;
+        // DEEP_FLOW: high focus, low distractions, high demand, steady speech
+        scores[4] = (focusR * 0.25 + (1 - tabNorm) * 0.15 + (1 - phoneVis) * 0.15 + (1 - distNorm) * 0.15 + cogDemand * 0.15 + fluency * 0.15) * 0.9;
 
         // Add small noise
         for (let i = 0; i < 5; i++) scores[i] += Math.random() * 0.05;
@@ -449,14 +383,13 @@ class InferencePipeline {
     /** Compute which features drove the prediction */
     _computeFeatureImportance(features, predictedClass) {
         const names = ['Tabs', 'Phone', 'Distractions', 'Focus', 'Speech',
-                       'Speech Conf', 'Speed', 'Fluency', 'Task Type', 'Demand', 'Task Conf',
-                       'Screen App', 'Screen Prod.', 'Screen Conf'];
+                       'Speech Conf', 'Speed', 'Fluency', 'Task Type', 'Demand', 'Task Conf'];
 
         // Simple importance based on deviation from "neutral" (0.5)
         const importances = features.map((f, i) => ({
-            name: names[i] || `Feature ${i}`,
+            name: names[i],
             value: features[i],
-            importance: Math.abs(f - 0.5) * (i < 4 ? 1.2 : i < 8 ? 1.0 : i < 11 ? 0.8 : 1.1),
+            importance: Math.abs(f - 0.5) * (i < 4 ? 1.2 : i < 8 ? 1.0 : 0.8),
         }));
 
         return importances.sort((a, b) => b.importance - a.importance).slice(0, 5);
@@ -468,17 +401,30 @@ class InferencePipeline {
         const extData = this._extensionTabData;
         const nlpText = taskText || (extData?.activeTab?.title) || '';
 
-        // Run all 4 modality models
+        // Run all modality models
         const visionResult = await this._runVisionModel();
         const audioResult = await this._runAudioModel();
         const nlpResult = await this._runNLPModel(nlpText);
-        const screenResult = await this._runScreenModel();
+
+        // Run screen classifier if screen capture is active
+        let screenResult = null;
+        if (this.visionPreprocessor.screenVideo && this.visionPreprocessor.screenVideo.videoWidth > 0) {
+            screenResult = await this.screenClassifier.classify(this.visionPreprocessor.screenVideo);
+            this.lastScreenResult = screenResult;
+
+            // Option A: Override focus_ratio with screen productivity score
+            visionResult.focus_ratio = screenResult.productivityScore;
+            console.log(`[Screen] ${screenResult.className} (${(screenResult.confidence * 100).toFixed(0)}%) → productivity=${(screenResult.productivityScore * 100).toFixed(0)}%`);
+        }
 
         // Enrich vision with extension tab data when available
         if (extData && extData.extensionConnected) {
             visionResult.tab_count_norm = extData.tabCountNorm || visionResult.tab_count_norm;
             visionResult.distraction_count_norm = extData.distractionScore || visionResult.distraction_count_norm;
-            visionResult.focus_ratio = Math.max(visionResult.focus_ratio, extData.productivityScore || 0);
+            // Only use extension productivity if screen classifier didn't override
+            if (!screenResult) {
+                visionResult.focus_ratio = Math.max(visionResult.focus_ratio, extData.productivityScore || 0);
+            }
             // Extension provides real source
             if (visionResult.source === 'no-webcam' || visionResult.source === 'no-model') {
                 visionResult.source = 'Chrome Extension';
@@ -487,24 +433,20 @@ class InferencePipeline {
             }
         }
 
-        // Fuse and run meta-classifier (14-feature vector)
+        // Fuse and run meta-classifier
         const fusedVector = new Float32Array([
             visionResult.tab_count_norm, visionResult.phone_visible,
             visionResult.distraction_count_norm, visionResult.focus_ratio,
             audioResult.speech_class, audioResult.speech_confidence,
             audioResult.wpm_norm, audioResult.fluency_score,
             nlpResult.task_class, nlpResult.cognitive_demand, nlpResult.confidence,
-            screenResult.screen_class, screenResult.screen_productivity, screenResult.screen_confidence,
         ]);
 
         let flowState = 2, probs = [0.2, 0.2, 0.2, 0.2, 0.2];
 
         if (this.models.meta) {
             try {
-                // Support both 11-dim (legacy) and 14-dim (with screen) meta models
-                const metaInputSize = this.models.meta.inputNames?.length > 0 ? 14 : 14;
-                const metaVector = fusedVector.length === 14 ? fusedVector : fusedVector.slice(0, 11);
-                const metaTensor = new ort.Tensor('float32', metaVector, [1, metaVector.length]);
+                const metaTensor = new ort.Tensor('float32', fusedVector, [1, 11]);
                 const metaResult = await this.models.meta.run({ input: metaTensor });
                 
                 // Parse label — sklearn RF exports as int64 tensor named 'label' or 'output_label'
@@ -580,6 +522,13 @@ class InferencePipeline {
                 activeTabCategory: extData?.activeTab?.category || null,
                 allTabs: extData?.tabs || [],
             },
+            screen: screenResult ? {
+                className: screenResult.className,
+                confidence: (screenResult.confidence * 100).toFixed(0) + '%',
+                productivityScore: (screenResult.productivityScore * 100).toFixed(0) + '%',
+                rawProbs: screenResult.rawProbs,
+                source: screenResult.source,
+            } : null,
             audio: {
                 speechClass: this.speechClassNames[audioResult.speech_class] || 'Normal',
                 energyLevel: audioResult.energyLevel || this.speechClassNames[audioResult.speech_class] || 'Normal',
@@ -599,14 +548,6 @@ class InferencePipeline {
                 source: nlpSrc,
                 analyzedText: nlpText || null,
             },
-            screen: {
-                appType: screenResult.className || 'Unknown',
-                productivity: (screenResult.screen_productivity * 100).toFixed(0) + '%',
-                confidence: (screenResult.screen_confidence * 100).toFixed(0) + '%',
-                classProbs: screenResult.class_probs || null,
-                features: screenResult,
-                source: screenResult.source || 'inactive',
-            },
             meta: {
                 flowState: this.flowStateNames[flowState],
                 classProbs: probs,
@@ -614,7 +555,7 @@ class InferencePipeline {
                 fusedVector: Array.from(fusedVector),
             },
             featureImportances: this._computeFeatureImportance(Array.from(fusedVector), flowState),
-            dataSources: { vision: visionSrc, audio: audioSrc, nlp: nlpSrc, meta: metaSrc, screen: screenResult.source || 'inactive' },
+            dataSources: { vision: visionSrc, audio: audioSrc, nlp: nlpSrc, meta: metaSrc, screen: screenResult?.source || 'none' },
             extensionConnected: !!extData?.extensionConnected,
             timestamp: Date.now(),
         };
@@ -805,62 +746,6 @@ class InferencePipeline {
             console.warn('NLP model inference failed:', e);
             const demo = this.nlpTokenizer.classifyDemo(taskText);
             return { task_class: demo.taskClass, cognitive_demand: demo.cognitiveDemand, confidence: demo.confidence, class_probs: null, source: 'error' };
-        }
-    }
-
-    /** Run Screen Classifier model and extract features */
-    async _runScreenModel() {
-        const defaults = { screen_class: 0, className: 'Unknown', screen_productivity: 0.5, screen_confidence: 0, class_probs: null, source: 'no-screen' };
-        
-        if (!this.models.screen) {
-            // Fake demo logic if no model
-            return {
-                ...defaults,
-                source: 'demo-logic',
-                className: 'Demo Screen',
-                screen_productivity: 0.5,
-                screen_confidence: 0.8
-            };
-        }
-
-        try {
-            const imageData = this.visionPreprocessor.captureForScreenClassifier();
-            if (!imageData) {
-                return { ...defaults, source: this.visionPreprocessor.isActive ? 'capture-failed' : 'no-screen' };
-            }
-
-            const tensor = new ort.Tensor('float32', imageData, [1, 3, 224, 224]);
-            const inputName = this.models.screen.inputNames ? this.models.screen.inputNames[0] : (this.models.screen.session?.inputNames?.[0] || 'input');
-            const feeds = {};
-            feeds[inputName] = tensor;
-            const result = await this.models.screen.run(feeds);
-            
-            const outputName = this.models.screen.outputNames ? this.models.screen.outputNames[0] : (this.models.screen.session?.outputNames?.[0] || Object.keys(result)[0]);
-            const output = result[outputName];
-            
-            const logits = Array.from(output.data);
-            const maxLogit = Math.max(...logits);
-            const expLogits = logits.map(l => Math.exp(l - maxLogit));
-            const sumExp = expLogits.reduce((a, b) => a + b, 0);
-            const probs = expLogits.map(e => e / sumExp);
-            
-            const predictedClass = probs.indexOf(Math.max(...probs));
-            const className = this.screenClassNames[predictedClass] || 'Unknown';
-            const productivity = this.screenProductivityMap[predictedClass] || 0.5;
-            
-            console.log(`[Screen CNN] Screen="${className}" (${(Math.max(...probs)*100).toFixed(0)}%), Prod=${productivity}`);
-            
-            return {
-                screen_class: predictedClass,
-                className: className,
-                screen_productivity: productivity,
-                screen_confidence: Math.max(...probs),
-                class_probs: probs,
-                source: 'ONNX Model',
-            };
-        } catch (e) {
-            console.warn('Screen model inference failed:', e);
-            return { ...defaults, source: 'error' };
         }
     }
 

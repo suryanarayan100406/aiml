@@ -427,43 +427,6 @@ class VisionPreprocessor {
         }
     }
 
-    /**
-     * Capture a frame for the screen classifier CNN (224×224 RGB).
-     * Separate from YOLO's 640×640 capture to avoid interference.
-     * Returns NCHW Float32Array or null if no active stream.
-     */
-    captureForScreenClassifier() {
-        const vid = this.screenVideo || this.webcamVideo;
-        if (!vid || !vid.videoWidth) return null;
-
-        // Use a separate small canvas for 224×224
-        if (!this._screenClfCanvas) {
-            this._screenClfCanvas = document.createElement('canvas');
-            this._screenClfCanvas.width = 224;
-            this._screenClfCanvas.height = 224;
-            this._screenClfCtx = this._screenClfCanvas.getContext('2d');
-        }
-
-        this._screenClfCtx.drawImage(vid, 0, 0, 224, 224);
-        const imageData = this._screenClfCtx.getImageData(0, 0, 224, 224);
-        const { data } = imageData;
-        const pixels = 224 * 224;
-
-        // NCHW format [1, 3, 224, 224] with ImageNet normalization
-        const mean = [0.485, 0.456, 0.406];
-        const std = [0.229, 0.224, 0.225];
-        const tensor = new Float32Array(3 * pixels);
-
-        for (let i = 0; i < pixels; i++) {
-            const srcIdx = i * 4;
-            tensor[i]              = (data[srcIdx]     / 255.0 - mean[0]) / std[0]; // R
-            tensor[pixels + i]     = (data[srcIdx + 1] / 255.0 - mean[1]) / std[1]; // G
-            tensor[2 * pixels + i] = (data[srcIdx + 2] / 255.0 - mean[2]) / std[2]; // B
-        }
-
-        return tensor;
-    }
-
     /** Extract vision features without ONNX model (demo mode) — uses webcam image analysis */
     extractDemoFeatures() {
         const vid = this.webcamVideo || this.screenVideo;

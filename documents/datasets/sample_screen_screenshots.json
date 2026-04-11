@@ -1,0 +1,105 @@
+{
+  "_info": "Sample screen classifier training metadata. Full dataset is generated programmatically during training.",
+  "_note": "The Colab script creates 500 synthetic screenshots per class by drawing UI layouts with class-specific patterns.",
+
+  "classes": {
+    "0": "PRODUCTIVE_CODE",
+    "1": "PRODUCTIVE_DOCS",
+    "2": "COMMUNICATION",
+    "3": "DISTRACTION",
+    "4": "NEUTRAL"
+  },
+
+  "productivity_scores": {
+    "0": 0.95,
+    "1": 0.80,
+    "2": 0.50,
+    "3": 0.10,
+    "4": 0.40
+  },
+
+  "generation_config": {
+    "samples_per_class": 500,
+    "total_samples": 2500,
+    "resolutions": ["800x450", "960x540", "1024x600", "1280x720", "1440x810"],
+    "augmentations": ["color_jitter", "gaussian_blur"]
+  },
+
+  "class_visual_features": {
+    "PRODUCTIVE_CODE": {
+      "description": "Dark-background IDE/terminal screenshots",
+      "key_elements": ["dark background (RGB 30-40)", "line numbers", "syntax-highlighted code blocks", "side panel (file tree)", "tab bar", "status bar (blue/green)", "minimap"],
+      "color_palette": {
+        "backgrounds": ["#1e1e1e", "#282c34", "#1d1f21", "#002b36"],
+        "text": ["#d4d4d4", "#abb2bf", "#56b6c2", "#b5cea8"],
+        "accent": ["#61afef", "#98c379", "#e06c75", "#e5c07b"]
+      },
+      "example_apps": ["VS Code", "IntelliJ IDEA", "Terminal", "Vim", "Jupyter Notebook"]
+    },
+    "PRODUCTIVE_DOCS": {
+      "description": "Light-background document/spreadsheet screenshots",
+      "key_elements": ["white background", "toolbar/ribbon area", "paragraph text blocks", "heading text", "spreadsheet grid cells"],
+      "color_palette": {
+        "backgrounds": ["#ffffff", "#f8f9fa", "#f5f5f5"],
+        "text": ["#212529", "#333333", "#000000"],
+        "accent": ["#0078d7", "#106ebe"]
+      },
+      "example_apps": ["Google Docs", "Microsoft Word", "Excel", "Notion", "Obsidian"]
+    },
+    "COMMUNICATION": {
+      "description": "Chat/email interface screenshots",
+      "key_elements": ["sidebar with contacts/channels", "message bubbles", "email rows", "avatar circles", "input field", "header bar"],
+      "color_palette": {
+        "backgrounds": ["#ffffff", "#f0f0f0", "#36393f", "#2c2f33"],
+        "text": ["#212529", "#000000", "#dcddde"],
+        "accent": ["#0084ff", "#5865f2", "#00b050"]
+      },
+      "example_apps": ["Slack", "Gmail", "Microsoft Teams", "Discord", "Zoom"]
+    },
+    "DISTRACTION": {
+      "description": "Social media/entertainment screenshots",
+      "key_elements": ["colorful images/thumbnails", "social feed cards", "video player", "like/comment icons", "navigation bar"],
+      "color_palette": {
+        "backgrounds": ["#ffffff", "#0f0f0f", "#181818"],
+        "text": ["#212529", "#ffffff", "#aaaaaa"],
+        "accent": ["#ff0000", "#1da1f2", "#e1306c", "#ffa500"]
+      },
+      "example_apps": ["YouTube", "Twitter/X", "Instagram", "Reddit", "Netflix"]
+    },
+    "NEUTRAL": {
+      "description": "File manager/settings/search screenshots",
+      "key_elements": ["file list rows", "icon elements", "settings toggles", "search bar", "form fields"],
+      "color_palette": {
+        "backgrounds": ["#f3f3f3", "#202020", "#f0f0f0"],
+        "text": ["#000000", "#ffffff", "#646464"],
+        "accent": ["#0078d7", "#4caf50", "#9e9e9e"]
+      },
+      "example_apps": ["File Explorer", "System Settings", "Google Search", "Chrome Downloads"]
+    }
+  },
+
+  "training_approach": {
+    "method": "CLIP Knowledge Distillation",
+    "teacher_model": "openai/clip-vit-base-patch32 (used only for label verification, not required)",
+    "student_model": "MobileNetV3-Small (torchvision, pretrained on ImageNet)",
+    "classifier_head": "Linear(576→1024) → Hardswish → Dropout(0.3) → Linear(1024→5)",
+    "frozen_layers": "features[0:9] (early convolutional blocks)",
+    "trainable_layers": "features[9:12] + classifier",
+    "optimizer": "AdamW(lr=1e-4, weight_decay=0.01)",
+    "scheduler": "CosineAnnealingLR(T_max=15, eta_min=1e-6)",
+    "loss": "CrossEntropyLoss"
+  },
+
+  "onnx_export": {
+    "opset_version": 14,
+    "input_name": "input",
+    "input_shape": [1, 3, 224, 224],
+    "output_name": "output",
+    "output_shape": [1, 5],
+    "normalization": {
+      "mean": [0.485, 0.456, 0.406],
+      "std": [0.229, 0.224, 0.225]
+    },
+    "estimated_size_mb": 5
+  }
+}

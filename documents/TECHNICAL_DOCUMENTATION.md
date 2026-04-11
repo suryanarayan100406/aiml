@@ -2,7 +2,7 @@
 
 > **Complete system documentation covering architecture, models, datasets, training pipelines, inference engine, and deployment.**
 
-**Version:** 2.1.0  
+**Version:** 3.0.0  
 **Last Updated:** April 2026  
 **Author:** Suryanarayan (AI/ML Coursework)  
 **Repository:** [github.com/suryanarayan100406/aiml](https://github.com/suryanarayan100406/aiml)
@@ -18,7 +18,7 @@
 5. [Model 2 — Audio (XGBoost)](#5-model-2--audio-xgboost)
 6. [Model 3 — NLP (DistilBERT)](#6-model-3--nlp-distilbert)
 7. [Model 4 — Meta-Classifier (Random Forest)](#7-model-4--meta-classifier-random-forest)
-8. [Model 5 — Screen UI/App Classifier (Custom CNN)](#8-model-5--screen-uiapp-classifier-custom-cnn)
+8. [Model 5 — Screen Classifier (MobileNetV3-Small)](#8-model-5--screen-classifier-mobilenetv3-small)
 9. [Voice State Engine (DSP)](#9-voice-state-engine-dsp)
 10. [ANI Guardian (Decision Engine)](#10-ani-guardian-decision-engine)
 11. [Chrome Extension](#11-chrome-extension)
@@ -34,16 +34,16 @@
 
 ### What is ANI?
 
-**ANI (Adaptive Neural Intelligence)** is a **multimodal cognitive flow state analyzer** that monitors a user's workspace in real-time through four sensory channels:
+**ANI (Adaptive Neural Intelligence)** is a **multimodal cognitive flow state analyzer** that monitors a user's workspace in real-time through three sensory channels:
 
 | Channel | What It Monitors | Technology |
 |---------|-----------------|------------|
 | 👁️ **Vision** | Desk environment — phone, monitors, distractions | YOLOv8-nano via webcam |
+| 🖥️ **Screen** | Screen content productivity — coding vs distraction | MobileNetV3-Small via screen share |
 | 🎙️ **Audio** | Voice energy, tone, and activity patterns | XGBoost + Web Audio DSP |
 | 📝 **Text** | Task type & cognitive demand from tab/task titles | DistilBERT transformer |
-| 💻 **Screen** | App/UI recognition and productivity mapping | Custom CNN on Screen Capture |
 
-These four signals are **fused into a 14-dimensional feature vector** and passed through a **calibrated Random Forest meta-classifier** to produce a final prediction of the user's cognitive state.
+These signals are **fused into an 11-dimensional feature vector** (screen productivity feeds into `focus_ratio`) and passed through a **calibrated Random Forest meta-classifier** to produce a final prediction of the user's cognitive state.
 
 ### Five Flow States
 
@@ -67,56 +67,61 @@ These four signals are **fused into a 14-dimensional feature vector** and passed
 ## 2. System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     BROWSER (ONNX Runtime Web + WebAssembly)            │
-│                                                                         │
-│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐            │
-│  │  👁️ VISION      │  │  🎙️ AUDIO       │  │  📝 NLP         │            │
-│  │                │  │                │  │                │            │
-│  │  YOLOv8-nano   │  │  XGBoost       │  │  DistilBERT    │            │
-│  │  ONNX: 12 MB   │  │  ONNX: 2.4 MB  │  │  ONNX: 256 MB  │            │
-│  │                │  │  + DSP Engine   │  │                │            │
-│  │  Input:        │  │                │  │  Input:        │            │
-│  │  640×640 RGB   │  │  Input:        │  │  128 WordPiece  │            │
-│  │                │  │  52-dim vector  │  │  tokens        │            │
-│  │  Output:       │  │                │  │                │            │
-│  │  4 features    │  │  Output:       │  │  Output:       │            │
-│  │  (tab, phone,  │  │  4 features    │  │  3 features    │            │
-│  │   distr, focus)│  │  (class, conf, │  │  (class, demand│            │
-│  │                │  │   energy, act) │  │   confidence)  │            │
-│  └───────┬────────┘  └───────┬────────┘  └───────┬────────┘            │
-│          │                   │                    │                     │
-│          └───────────┐       │        ┌───────────┘                     │
-│                      ▼       ▼        ▼                                 │
-│              ┌───────────────────────────────┐                          │
-│              │   FEATURE FUSION (11-dim)     │                          │
-│              │   [4 vision + 4 audio + 3 nlp]│                          │
-│              └──────────────┬────────────────┘                          │
-│                             │                                           │
-│                    ┌────────┴────────┐                                  │
-│                    │  🔀 META-CLF     │                                  │
-│                    │  Random Forest   │                                  │
-│                    │  + Platt Scaling │                                  │
-│                    │  ONNX: 9.9 MB   │                                  │
-│                    └────────┬────────┘                                  │
-│                             │                                           │
-│                    ┌────────┴────────┐                                  │
-│                    │   FLOW STATE    │──▶ ANI Guardian (Decision Tree)  │
-│                    │   5 classes +   │──▶ Dashboard UI (Charts)         │
-│                    │   probabilities │──▶ Session History               │
-│                    └─────────────────┘                                  │
-│                                                                         │
-│  ┌──────────────────────────────────────────────────────────────────┐   │
-│  │  🛡️ ANI GUARDIAN — Adaptive Alert Engine                         │   │
-│  │  Decision Tree + Pomodoro Timer + Context-Aware Suggestions     │   │
-│  └──────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────┘
-         ▲                        ▲                        ▲
-         │                        │                        │
-    ┌────┴─────┐            ┌─────┴─────┐           ┌─────┴─────┐
-    │ Webcam   │            │ Microphone│           │  Chrome   │
-    │ Feed     │            │ Stream    │           │ Extension │
-    └──────────┘            └───────────┘           └───────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                     BROWSER (ONNX Runtime Web + WebAssembly)                 │
+│                                                                              │
+│  ┌─────── VISION PIPELINE ──────┐                                           │
+│  │                               │                                           │
+│  │  Webcam ──► YOLOv8-nano       │  ┌────────────────┐  ┌────────────────┐   │
+│  │             (640×640, 12 MB)   │  │  🎙️ AUDIO       │  │  📝 NLP         │   │
+│  │             ↓                 │  │                │  │                │   │
+│  │         desk objects          │  │  XGBoost       │  │  DistilBERT    │   │
+│  │         (phone, monitor,      │  │  ONNX: 2.4 MB  │  │  ONNX: 256 MB  │   │
+│  │          tools, distractions) │  │  + DSP Engine   │  │                │   │
+│  │                               │  │                │  │  Input:        │   │
+│  │  Screen ──► MobileNetV3-S     │  │  Input:        │  │  128 WordPiece  │   │
+│  │  Capture    (224×224, ~5 MB)   │  │  52-dim vector  │  │  tokens        │   │
+│  │             ↓                 │  │                │  │                │   │
+│  │         productivity score    │  │  Output:       │  │  Output:       │   │
+│  │         (code/docs/chat/      │  │  4 features    │  │  3 features    │   │
+│  │          distraction/neutral) │  │  (class, conf, │  │  (class, demand│   │
+│  │              ↓                │  │   energy, act) │  │   confidence)  │   │
+│  │         → replaces focus_ratio│  │                │  │                │   │
+│  └──────────────┬────────────────┘  └───────┬────────┘  └───────┬────────┘   │
+│                 │                            │                   │            │
+│                 └────────────┐               │       ┌───────────┘            │
+│                              ▼               ▼       ▼                        │
+│                 ┌───────────────────────────────────────┐                     │
+│                 │      FEATURE FUSION (11-dim)          │                     │
+│                 │   [4 vision + 4 audio + 3 nlp]        │                     │
+│                 │   (focus_ratio from Screen Classifier  │                     │
+│                 │    when screen share is active)        │                     │
+│                 └──────────────────┬────────────────────┘                     │
+│                                    │                                          │
+│                           ┌────────┴────────┐                                 │
+│                           │  🔀 META-CLF     │                                 │
+│                           │  Random Forest   │                                 │
+│                           │  + Platt Scaling │                                 │
+│                           │  ONNX: 9.9 MB   │                                 │
+│                           └────────┬────────┘                                 │
+│                                    │                                          │
+│                           ┌────────┴────────┐                                 │
+│                           │   FLOW STATE    │──▶ ANI Guardian (Decision Tree) │
+│                           │   5 classes +   │──▶ Dashboard UI (Charts)        │
+│                           │   probabilities │──▶ Session History              │
+│                           └─────────────────┘                                 │
+│                                                                               │
+│  ┌───────────────────────────────────────────────────────────────────────┐    │
+│  │  🛡️ ANI GUARDIAN — Adaptive Alert Engine                              │    │
+│  │  Decision Tree + Pomodoro Timer + Context-Aware Suggestions          │    │
+│  └───────────────────────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────────────────────┘
+         ▲               ▲                ▲                        ▲
+         │               │                │                        │
+    ┌────┴─────┐  ┌──────┴──────┐   ┌─────┴─────┐           ┌─────┴─────┐
+    │ Webcam   │  │ Screen      │   │ Microphone│           │  Chrome   │
+    │ Feed     │  │ Share       │   │ Stream    │           │ Extension │
+    └──────────┘  └─────────────┘   └───────────┘           └───────────┘
 ```
 
 ### Technology Stack
@@ -140,20 +145,21 @@ These four signals are **fused into a 14-dimensional feature vector** and passed
 ```
 1. CAPTURE
    ├── Webcam → 640×640 RGB tensor (NCHW format)
+   ├── Screen → 224×224 RGB tensor (ImageNet normalized)
    ├── Microphone → 2048-sample time-domain buffer
-   ├── Screen Capture → 224×224 RGB tensor (NCHW format)
    └── Chrome Extension → Active tab title + tab count
 
 2. EXTRACT FEATURES
-   ├── Vision: YOLOv8 → detections → [tab_count_norm, phone_visible,
-   │                                    distraction_count_norm, focus_ratio]
-   ├── Screen: Custom CNN → app classification → [screen_class, screen_productivity, screen_conf]
+   ├── Vision (Webcam): YOLOv8 → detections → [tab_count_norm, phone_visible,
+   │                                            distraction_count_norm, focus_ratio]
+   ├── Screen: MobileNetV3 → [productivity_class, confidence, productivity_score]
+   │           → replaces focus_ratio when screen share is active
    ├── Audio: Web Audio DSP → 52-dim librosa-style vector
    │          XGBoost → [speech_class, confidence, wpm_norm, fluency_score]
    │          DSP Engine → [energyLevel, tone, activityPercent]
    └── NLP: WordPiece → DistilBERT → [task_class, cognitive_demand, confidence]
 
-3. FUSE (14-dimensional feature vector)
+3. FUSE (11-dimensional feature vector)
    Index  Feature                Source    Range
    ─────────────────────────────────────────────
    0      tab_count_norm         Vision    [0, 1]
@@ -167,9 +173,6 @@ These four signals are **fused into a 14-dimensional feature vector** and passed
    8      task_class_encoded     NLP       {0,1,2,3,4}
    9      cognitive_demand_score NLP       [0, 1]
    10     task_confidence        NLP       [0, 1]
-   11     screen_class           Screen    {0,1,2,3,4,5,6,7}
-   12     screen_productivity    Screen    [0, 1]
-   13     screen_confidence      Screen    [0, 1]
 
 4. CLASSIFY
    Meta-classifier → 5-class flow state + calibrated probabilities
@@ -432,7 +435,7 @@ A **pure JavaScript WordPiece tokenizer** is included (no external dependencies)
 | **Architecture** | Random Forest + Platt Calibration |
 | **Hyperparameter Search** | GridSearchCV (5-fold) |
 | **Best Config** | ~300 trees, max depth 6, balanced class weights |
-| **Input** | 14-dimensional fused feature vector |
+| **Input** | 11-dimensional fused feature vector |
 | **Output** | 5 flow state classes + calibrated probabilities |
 | **Calibration** | Platt Scaling (sigmoid, 5-fold CV) |
 | **ONNX Export** | via `skl2onnx` |
@@ -497,49 +500,98 @@ scores[4] = (1-tab)*0.15 + (1-phone)*0.15 + focus*0.2 + demand*0.15
 
 ---
 
-## 8. Model 5 — Screen UI/App Classifier (Custom CNN)
+## 8. Model 5 — Screen Classifier (MobileNetV3-Small)
 
 ### Specification
 
 | Property | Value |
 |----------|-------|
-| **Architecture** | Custom 5-block CNN (MobileNet-inspired) |
-| **Input Shape** | `[1, 3, 224, 224]` — RGB, NCHW format |
-| **Output Shape** | `[1, 8]` — 8 class logits |
+| **Architecture** | MobileNetV3-Small (torchvision) + custom classifier head |
+| **Base Model** | `mobilenet_v3_small` (pretrained on ImageNet) |
+| **Training Method** | CLIP knowledge distillation on synthetic screenshots |
+| **Classes (5)** | `PRODUCTIVE_CODE`, `PRODUCTIVE_DOCS`, `COMMUNICATION`, `DISTRACTION`, `NEUTRAL` |
+| **Input Shape** | `[1, 3, 224, 224]` — RGB, NCHW, ImageNet normalized |
+| **Output Shape** | `[1, 5]` — class logits (softmaxed in browser) |
 | **ONNX Opset** | 14 |
-| **Model Size** | ~1 MB |
-| **Inference Mode** | 224x224 Screen Capture API stream |
+| **Model Size** | ~5 MB |
+| **Normalization** | `mean=[0.485, 0.456, 0.406]`, `std=[0.229, 0.224, 0.225]` |
 
-### Screen Classes & Productivity Mapping
+### Screen Productivity Classes
 
-| Class ID | App/UI Type | Target Productivity | Description |
+| Class ID | Category | Productivity Score | Examples |
 |:---:|---|:---:|---|
-| 0 | `VS_CODE` | 0.95 | IDE/Code Editor active |
-| 1 | `TERMINAL` | 0.90 | Command line interface |
-| 2 | `BROWSER_DEV` | 0.80 | Browser with dev tools or documentation |
-| 3 | `BROWSER_GENERAL`| 0.40 | General browsing |
-| 4 | `YOUTUBE` | 0.20 | Video streaming / entertainment |
-| 5 | `SOCIAL_MEDIA`| 0.10 | Social networks |
-| 6 | `GAMING` | 0.05 | Games running |
-| 7 | `DESKTOP_IDLE` | 0.00 | Empty desktop or idle state |
+| 0 | `PRODUCTIVE_CODE` | 0.95 | VS Code, terminals, IDEs, Jupyter |
+| 1 | `PRODUCTIVE_DOCS` | 0.80 | Google Docs, Excel, Notion, Word |
+| 2 | `COMMUNICATION` | 0.50 | Slack, Email, Teams, Zoom |
+| 3 | `DISTRACTION` | 0.10 | YouTube, Twitter, Reddit, news sites |
+| 4 | `NEUTRAL` | 0.40 | File manager, system settings, search |
 
-### Output Feature Extraction
+### Training Pipeline (Knowledge Distillation)
 
-The CNN outputs 8 class probabilities, which are then mapped to a continuous productivity score:
-```javascript
-screen_class = argmax(probabilities)
-screen_confidence = max(probabilities)
-screen_productivity = CLASS_PRODUCTIVITY_MAP[screen_class]
+```
+Step 1: Generate 2,500 synthetic screenshots (500/class)
+        └── Programmatic generation with class-specific visual features:
+            - Code: dark bg, line numbers, syntax highlight blocks, sidebars
+            - Docs: white bg, headings, paragraph blocks, toolbars
+            - Chat: message bubbles, contact lists, input bars
+            - Distraction: colorful cards, video thumbnails, social feeds
+            - Neutral: file lists, settings panels, search bars
+
+Step 2: (Optional) CLIP ViT-B/32 label verification
+        └── Verify synthetic labels agree with CLIP zero-shot classification
+
+Step 3: Fine-tune MobileNetV3-Small
+        └── Freeze early layers, train last 3 blocks + classifier
+        └── Classifier head: 576 → 1024 → 5 (with Hardswish + Dropout)
+
+Step 4: Export to ONNX
+        └── screen_classifier.onnx (~5 MB)
 ```
 
-### Dataset: Web-scraped & Synthetic UI
+### Training Configuration
 
-| Property | Value |
-|----------|-------|
-| **Source** | Custom web scraper & local captures |
-| **Classes** | 8 specific UI environments |
-| **Size** | Automatically fetched/generated |
-| **Augmentation** | Downsampled to 224x224 |
+| Parameter | Value |
+|-----------|-------|
+| Epochs | 15 (+ early stopping, patience 5) |
+| Batch Size | 32 |
+| Image Size | 224×224 |
+| Optimizer | AdamW (lr=1e-4, weight_decay=0.01) |
+| Scheduler | CosineAnnealing (η_min=1e-6) |
+| Frozen Layers | features[0-8] (early blocks) |
+| Trainable Layers | features[-3:] + classifier |
+| Augmentation | RandomCrop, HFlip, ColorJitter, Grayscale |
+| Train/Val Split | 80% / 20% |
+
+### Integration: Focus Ratio Override (Option A)
+
+The screen classifier feeds into the existing 11-dimension pipeline **without retraining the meta-classifier**:
+
+```
+When screen share is active:
+    focus_ratio = screen_productivity_score   ← from MobileNetV3
+When screen share is inactive:
+    focus_ratio = computed from YOLO detections  ← existing logic
+```
+
+This means:
+- **PRODUCTIVE_CODE detected** → `focus_ratio = 0.95` → pushes toward DEEP_FLOW
+- **DISTRACTION detected** → `focus_ratio = 0.10` → pushes toward DISTRACTED
+- No retraining of the meta-classifier (script 4) is needed
+
+### Prediction Smoothing
+
+To avoid flickering between classes:
+- Maintains a buffer of the last 5 predictions
+- Uses **confidence-weighted majority voting** to determine final class
+- Clips max confidence at 0.99 to avoid overconfidence
+
+### Fallback: Heuristic Classification
+
+When the ONNX model is not available, a color-analysis heuristic runs:
+- **Dark screenshots** (>60% dark pixels) → likely code/IDE
+- **Bright screenshots** (>60% bright pixels) → likely docs
+- **Colorful screenshots** (high saturation variance) → likely distraction
+- **Moderate** → neutral
 
 ---
 
@@ -668,9 +720,10 @@ frontend/
 ├── css/
 │   └── styles.css             # Dark theme design system (~2000 lines)
 └── js/
-    ├── inference_pipeline.js  # ONNX orchestrator — load, run, fuse
+    ├── inference_pipeline.js  # ONNX orchestrator — load, run, fuse (5 models)
     ├── ui_controller.js       # State machine — panels, charts, toasts
     ├── vision_preprocessor.js # Webcam/screen → 640×640 NCHW tensor
+    ├── screen_classifier.js   # Screen → 224×224 → MobileNetV3 productivity
     ├── audio_extractor.js     # Web Audio → 52-dim + Voice State DSP
     ├── nlp_tokenizer.js       # WordPiece tokenizer (pure JS)
     ├── ani_guardian.js        # Decision tree + Pomodoro timer
@@ -681,7 +734,7 @@ frontend/
 
 | Panel | Description |
 |-------|-------------|
-| 🏠 **Dashboard** | Flow gauge, 3 metric cards, timeline chart, top features |
+| 🏠 **Dashboard** | Flow gauge, 4 metric cards (Vision, Screen, Audio, NLP), timeline chart, top features |
 | ▶️ **Session** | Start/stop recording, inference loop, task text input |
 | 🧩 **Models** | Individual model cards with load status badges |
 | 📜 **History** | Past session logs with flow distributions |
@@ -706,7 +759,7 @@ git clone https://github.com/suryanarayan100406/aiml.git
 cd aiml/ani-flow-optimizer
 
 # 2. Train models on Google Colab (scripts in colab/)
-#    Order: 1_vision → 2_audio → 3_nlp → 4_meta
+#    Order: 1_vision → 2_audio → 3_nlp → 4_meta → 5_screen
 
 # 3. Place trained .onnx files in models/
 
@@ -736,10 +789,10 @@ The Python HTTP server provides:
 | **COCO 2017** | Vision (YOLOv8) | [cocodataset.org](https://cocodataset.org/) | ~389 images | CC BY 4.0 | Auto-downloaded in Colab |
 | **RAVDESS** | Audio (XGBoost) | [Zenodo 1188976](https://zenodo.org/record/1188976) | 1,440 WAV files | CC BY-NC-SA 4.0 | Auto-downloaded in Colab |
 | **Synthetic Tasks** | NLP (DistilBERT) | Generated in-script | ~5,044 samples | N/A | Generated during training |
-| **Screen UI** | Screen (Custom CNN) | Scraping via colab script | 4,000+ | N/A | Generated during training |
-| **Simulated Fusion** | Meta-Classifier | Generated from models 1-3 & 5 | 2,000 samples | N/A | Generated during training |
+| **Simulated Fusion** | Meta-Classifier | Generated from models 1-3 | 2,000 samples | N/A | Generated during training |
+| **Synthetic Screenshots** | Screen (MobileNetV3) | Generated in-script | 2,500 images | N/A | Generated during training |
 
-> **Note:** All datasets are automatically downloaded during training. No manual dataset setup is required.
+> **Note:** All datasets are automatically downloaded or generated during training. No manual dataset setup is required.
 
 ### Detailed Dataset Descriptions
 
@@ -748,6 +801,7 @@ See the `documents/datasets/` directory for sample data files:
 - `sample_ravdess_features.csv` — Example extracted audio features
 - `sample_task_descriptions.csv` — Example NLP training data
 - `sample_fused_vectors.csv` — Example meta-classifier training data
+- `sample_screen_screenshots.json` — Example screen classifier training metadata
 
 ---
 
@@ -758,17 +812,20 @@ See the `documents/datasets/` directory for sample data files:
 | Model | Training Metric | Value | Browser Inference | Load Time |
 |-------|----------------|-------|-------------------|-----------|
 | Vision (YOLOv8) | mAP@0.5 | 0.427 | ~150ms | ~2s |
+| Screen (MobileNetV3) | Val F1 (macro) | TBD* | ~30ms | ~1s |
 | Audio (XGBoost) | CV F1 (macro) | 0.646 | ~5ms | ~0.5s |
 | NLP (DistilBERT) | Accuracy | 94.7% | ~50ms | ~30-60s |
 | Meta (RF) | CV F1 (macro) | 0.697 | ~2ms | ~1s |
-| **Full Pipeline** | — | — | **~210ms total** | **~35-65s** |
+| **Full Pipeline** | — | — | **~240ms total** | **~36-66s** |
+
+> *Screen classifier metrics are populated after first Colab training run.
 
 ### Resource Usage (Browser)
 
 | Resource | Approximate Usage |
 |----------|------------------|
-| Total ONNX model size | ~280 MB |
-| Peak memory (all loaded) | ~400 MB |
+| Total ONNX model size | ~285 MB (12 + 5 + 2.4 + 256 + 9.9) |
+| Peak memory (all loaded) | ~420 MB |
 | WebAssembly memory | ~128 MB |
 | CPU utilization (inference) | ~5-15% (one core) |
 
@@ -777,11 +834,12 @@ See the `documents/datasets/` directory for sample data files:
 ## 16. Future Roadmap
 
 1. **Meta-Classifier Retraining** — Retrain on real Voice State features (Energy/Tone/Activity) instead of WPM
-2. **Model Quantization** — INT8 quantize the DistilBERT model to reduce size from 256MB to ~64MB
-3. **WebGPU Inference** — Migrate from WASM to WebGPU when ONNX Runtime adds stable support
-4. **Calibration Tuning** — Fine-tune the DSP energy/tone thresholds based on user feedback
-5. **Multi-Language Support** — Already language-agnostic for audio; extend NLP templates
-6. **Mobile Responsive** — Adapt the dashboard for tablet/mobile form factors
+2. **Screen Classifier Enhancement** — Train on real screenshot datasets (e.g., web-screenshots corpus) instead of synthetic
+3. **Model Quantization** — INT8 quantize the DistilBERT model to reduce size from 256MB to ~64MB
+4. **WebGPU Inference** — Migrate from WASM to WebGPU when ONNX Runtime adds stable support
+5. **Calibration Tuning** — Fine-tune the DSP energy/tone thresholds based on user feedback
+6. **Multi-Language Support** — Already language-agnostic for audio; extend NLP templates
+7. **Mobile Responsive** — Adapt the dashboard for tablet/mobile form factors
 
 ---
 
