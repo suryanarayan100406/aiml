@@ -15,15 +15,19 @@ class AniGuardian {
         this.sessionInsights = { stateChanges: 0, avgQuality: 0, samples: 0 };
     }
 
-    /**
-     * Analyze results and generate Ani's personality-driven response.
-     * Implements the spec's decision tree:
-     *   If tabs > 10 + speech == ERRATIC/STUTTERING + task == COMPLEX → Task Switching / Low Focus
-     */
     generateResponse(result) {
         const { flowState, vision, audio, nlp, probabilities, confidence, workQuality } = result;
         
-        // Track state transitions
+        // Track state transitions and dips
+        let didDip = false;
+        if (this.lastWorkQuality !== undefined) {
+            // A dip is a >15% drop in quality OR dropping from good flow to bad state
+            if (workQuality < this.lastWorkQuality - 0.15 || (this.lastState >= 3 && flowState <= 2)) {
+                didDip = true;
+            }
+        }
+        this.lastWorkQuality = workQuality;
+
         if (this.lastState !== null && this.lastState !== flowState) {
             this.sessionInsights.stateChanges++;
         }
@@ -46,7 +50,37 @@ class AniGuardian {
         const ctx = this._buildContext(result);
         
         // Run decision tree
-        const decision = this._runDecisionTree(ctx);
+        let decision = this._runDecisionTree(ctx);
+        
+        // DIP OVERRIDE: If the graph just dipped and we know why, explicitly call it out!
+        if (didDip && flowState <= 2) {
+            let specificDistraction = null;
+            if (ctx.hasPhone) {
+                specificDistraction = 'your phone';
+            } else if (vision?.activeTabTitle && (vision.activeTabCategory === 'distraction' || vision.activeTabCategory === 'news')) {
+                // Extract shorter app name from "Video Name - YouTube"
+                specificDistraction = vision.activeTabTitle.split(/[-|—]/).pop().trim();
+                // If it couldn't find a clean string, just use "this website"
+                if (!specificDistraction || specificDistraction.length > 20) specificDistraction = 'this website';
+            } else if (vision?.distractions > 0) {
+                specificDistraction = 'the background distractions';
+            } else if (ctx.hasManyTabs) {
+                specificDistraction = 'opening so many tabs';
+            }
+            
+            if (specificDistraction) {
+                decision = {
+                    state: 'DIP_DETECTED',
+                    mood: 'concerned',
+                    severity: 'high',
+                    reason: 'quality_dip',
+                    actions: [`Stop using ${specificDistraction}`, 'Take a deep breath and close it immediately.']
+                };
+                
+                // We'll inject the dynamic text directly into the decision object for the message generator
+                ctx.dynamicDipText = `📉 Your flow just dipped! Please stop using **${specificDistraction}** immediately. It's draining your focus.`;
+            }
+        }
         
         // Generate Ani's message with personality
         const message = this._generateMessage(decision, ctx);
@@ -225,8 +259,9 @@ class AniGuardian {
                 { emoji: '🎯', text: `You're bouncing between contexts. My model gives you ${(ctx.workQuality * 100).toFixed(0)}% work quality right now. Let's boost that — commit to one task for the next Pomodoro.` },
             ],
             DISTRACTED: [
-                { emoji: '🌊', text: `Focus is drifting a bit. ${ctx.distractions > 0 ? `I see ${ctx.distractions} distraction(s) in view. ` : ''}Try the "5-minute rule" — commit to focused work for just 5 minutes. Usually, momentum kicks in.` },
-                { emoji: '🧘', text: `Your attention seems scattered. Take a deep breath, look at your task description, and ask: "What's the ONE thing I need to do right now?"` },
+                { emoji: '🌊', text: `Focus is drifting. ${ctx.hasPhone ? 'I see your phone. ' : ''}${ctx.distractions > 0 ? `I noticed ${ctx.distractions} visual distraction(s). ` : ''}${ctx.tabCount > 10 ? `You have ${ctx.tabCount} tabs pulling your attention. ` : ''}Try the "5-minute rule" — commit to focused work for just 5 minutes without these.` },
+                { emoji: '🧘', text: `Your attention seems scattered! ${ctx.hasPhone ? 'Your phone is right there. ' : ''}${ctx.focusRatio < 50 ? `Your visual focus is only ${(ctx.focusRatio).toFixed(0)}%. ` : ''}Take a deep breath, minimize extras, and ask: "What's the ONE thing I need to do right now?"` },
+                { emoji: '⚠️', text: `I'm picking up a distracted state. Reason: ${[ctx.hasPhone ? 'Phone detected' : '', ctx.distractions > 0 ? `${ctx.distractions} external distractions` : '', ctx.tabCount > 10 ? 'Too many tabs' : '', ctx.isSpeechErratic ? 'Erratic speech' : ''].filter(Boolean).join(', ') || 'General scattered focus'}. Let's remove the noise and jump back in.` }
             ],
             SOFT_FLOW: [
                 { emoji: '🟢', text: `You're in a good rhythm! Focus ratio is solid at ${ctx.focusRatio}% and your speech pattern is steady. Keep this up — you're building toward deep flow.` },
@@ -238,6 +273,9 @@ class AniGuardian {
                 { emoji: '💜', text: `Peak performance detected! Work quality: ${(ctx.workQuality * 100).toFixed(0)}%. This is the zone where your best work happens. I won't disturb you.` },
                 { emoji: '🧠', text: `Deep Flow state confirmed. ${ctx.tabCount <= 5 ? 'Clean workspace, ' : ''}${ctx.fluency > 60 ? 'steady voice, ' : ''}high cognitive demand — you're crushing it. I'll stay quiet.` },
             ],
+            DIP_DETECTED: [
+                { emoji: '📉', text: ctx.dynamicDipText }
+            ]
         };
 
         const stateTemplates = templates[decision.state] || templates['DISTRACTED'];

@@ -479,6 +479,26 @@ class InferencePipeline {
             probs = demoScores;
         }
 
+        // HARD OVERRIDES: Single critical triggers that break flow instantly
+        // The user explicitly requested that critical breaks bypass the ML averaging
+        if (visionResult.phone_visible) {
+            flowState = 2; // Distracted
+            probs = [0.05, 0.05, 0.8, 0.05, 0.05];
+            console.log('[Meta] Hard Override: Phone detected -> Distracted');
+        } else if (extData && extData.activeTab && extData.activeTab.category === 'distraction') {
+            flowState = 2; // Distracted
+            probs = [0.05, 0.05, 0.8, 0.05, 0.05];
+            console.log('[Meta] Hard Override: Distraction tab active -> Distracted');
+        } else if (screenResult && screenResult.productivityScore < 0.2) {
+            flowState = 2; // Distracted
+            probs = [0.05, 0.05, 0.8, 0.05, 0.05];
+            console.log('[Meta] Hard Override: Screen productivity critically low -> Distracted');
+        } else if (visionResult.tab_count_norm > 0.8) {
+            flowState = 0; // Pseudo-Working
+            probs = [0.8, 0.05, 0.05, 0.05, 0.05];
+            console.log('[Meta] Hard Override: Too many tabs -> Pseudo-Working');
+        }
+
         // Determine data sources
         const visionSrc = visionResult.source || (this.models.vision ? 'ONNX Model' : 'demo');
         const audioSrc = audioResult.source || (this.models.audio ? 'ONNX Model' : 'demo');
