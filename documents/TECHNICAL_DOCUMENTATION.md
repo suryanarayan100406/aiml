@@ -75,12 +75,12 @@ These signals are **fused into an 11-dimensional feature vector** (screen produc
 │  │  Webcam ──► YOLOv8-nano       │  ┌────────────────┐  ┌────────────────┐   │
 │  │             (640×640, 12 MB)   │  │  🎙️ AUDIO       │  │  📝 NLP         │   │
 │  │             ↓                 │  │                │  │                │   │
-│  │         desk objects          │  │  XGBoost       │  │  DistilBERT    │   │
-│  │         (phone, monitor,      │  │  ONNX: 2.4 MB  │  │  ONNX: 256 MB  │   │
+│  │         desk objects          │  │  XGBoost       │  │  Keyword       │   │
+│  │         (phone, monitor,      │  │  ONNX: 2.4 MB  │  │  Engine (0 MB) │   │
 │  │          tools, distractions) │  │  + DSP Engine   │  │                │   │
 │  │                               │  │                │  │  Input:        │   │
-│  │  Screen ──► MobileNetV3-S     │  │  Input:        │  │  128 WordPiece  │   │
-│  │  Capture    (224×224, ~6 MB)   │  │  52-dim vector  │  │  tokens        │   │
+│  │  Screen ──► MobileNetV3-S     │  │  Input:        │  │  tab title /   │   │
+│  │  Capture    (224×224, ~6 MB)   │  │  52-dim vector  │  │  URL / text    │   │
 │  │             ↓                 │  │                │  │                │   │
 │  │         productivity score    │  │  Output:       │  │  Output:       │   │
 │  │         (code/docs/chat/      │  │  4 features    │  │  3 features    │   │
@@ -349,80 +349,89 @@ The training script detects class imbalance and applies **random oversampling wi
 
 ---
 
-## 6. Model 3 — NLP (DistilBERT)
+## 6. Model 3 — NLP Task Classifier (Keyword Engine)
+
+> **v3.1 Update:** The original 256MB DistilBERT ONNX model was replaced with a lightweight keyword + URL + regex classifier that runs in pure JavaScript with **zero model files**. The Colab training script (`3_train_nlp_distilbert.py`) is preserved for reference but is no longer required for deployment.
 
 ### Specification
 
 | Property | Value |
 |----------|-------|
-| **Architecture** | DistilBERT-base-uncased + 5-class linear head |
-| **Base Model** | `distilbert-base-uncased` (HuggingFace) |
-| **Total Params** | 66M (only ~3.4M trainable) |
-| **Frozen Layers** | All except `transformer.layer.5` + `classifier` |
-| **Input** | Text string → 128 WordPiece tokens |
-| **Output** | 5 task classes + logits |
-| **ONNX Opset** | 14 |
-| **Model Size** | ~256 MB (single ONNX file, no external data) |
+| **Architecture** | Weighted keyword matching + URL domain hints + regex app patterns |
+| **Model Files** | **None** (0 MB — pure JS logic, ~250 lines) |
+| **Input** | Tab title, task description, or URL |
+| **Output** | 5 task classes + probabilities |
+| **Inference Time** | **<1ms** |
+| **Load Time** | **0s** (instantaneous) |
 
-### Task Classes
+### Why the Change?
 
-| Class ID | Task Type | Cognitive Demand Score | Example |
+| Aspect | DistilBERT (before) | Keyword Engine (now) |
+|--------|---------------------|---------------------|
+| Model Size | 256 MB | 0 MB |
+| Load Time | 30-60s | 0s |
+| Inference | ~50ms | <1ms |
+| Input type | Full sentences | Short tab titles (5-15 words) |
+| Training data | Synthetic templates | N/A (hand-crafted rules) |
+| Accuracy on tab titles | Low (trained on long sentences) | High (optimized for real tab titles) |
+
+### Task Classes (unchanged)
+
+| Class ID | Task Type | Cognitive Demand Score | Example Tab Title |
 |:---:|---|:---:|---|
-| 0 | `DEEP_WORK` | 0.90 | "Implement gradient descent for the payment module" |
-| 1 | `SHALLOW_WORK` | 0.20 | "Fix typo in API reference documentation" |
-| 2 | `CREATIVE` | 0.70 | "Design new onboarding flow for enterprise users" |
-| 3 | `ADMINISTRATIVE` | 0.30 | "Review and approve 12 pending pull requests" |
-| 4 | `COMMUNICATION` | 0.50 | "Draft email to engineering team about deadline" |
+| 0 | `DEEP_WORK` | 0.90 | "main.py — VS Code", "Stack Overflow" |
+| 1 | `SHALLOW_WORK` | 0.20 | "Settings", "New Tab", "Downloads" |
+| 2 | `CREATIVE` | 0.70 | "Untitled — Figma", "Dribbble - Explore" |
+| 3 | `ADMINISTRATIVE` | 0.30 | "Sprint Board — Jira", "Google Sheets" |
+| 4 | `COMMUNICATION` | 0.50 | "Inbox — Gmail", "Slack | #general" |
 
-### Dataset: Synthetic Augmented Task Descriptions
+### Classification Pipeline (5 phases)
 
-| Property | Value |
-|----------|-------|
-| **Source** | Generated from 120+ templates per class |
-| **Base Samples** | 2,000 (400 per class) |
-| **After Augmentation** | ~5,044 - 8,000+ samples |
-| **Cross-Category Noise** | 5% hard negatives |
-| **Template Variables** | 30+ fill-value categories |
+```
+Phase 1: Weighted Keyword Matching
+    └── ~50 keywords per class, each with signal weight (1.0–3.0)
+    └── Matches against lowercased text
 
-**Augmentation Techniques (4 methods):**
+Phase 2: App Name Patterns (Regex)
+    └── Detects IDE suffixes: "file.py — VS Code" → DEEP_WORK
+    └── Detects design tools: "— Figma" → CREATIVE
+    └── Detects comms apps: "Gmail", "Slack" → COMMUNICATION
 
-| Technique | Probability | Description |
-|-----------|:-----------:|-------------|
-| Word Dropout | 10% per word | Randomly removes words from sentence |
-| Synonym Replacement | 15% per word | Swaps words with WordNet synonyms |
-| Character Typos | 2% per char | Swap, delete, insert, or replace characters |
-| Word Swap | Every 3rd sample | Swap two adjacent words |
+Phase 3: URL Domain Hints
+    └── github.com, stackoverflow.com → DEEP_WORK (+3.0)
+    └── figma.com, dribbble.com → CREATIVE (+3.0)
+    └── mail.google.com, slack.com → COMMUNICATION (+3.0)
+    └── jira.atlassian.com, trello.com → ADMINISTRATIVE (+3.0)
 
-### Training Configuration
+Phase 4: Text Complexity Heuristics
+    └── Long text + technical chars → DEEP_WORK boost
+    └── Very short text, no signals → SHALLOW_WORK fallback
 
-| Parameter | Value |
-|-----------|-------|
-| Epochs | 8 (+ early stopping, patience 3) |
-| Batch Size | 16 |
-| Max Sequence Length | 128 tokens |
-| Learning Rate | 2e-5 |
-| Warmup Steps | 200 |
-| Weight Decay | 0.01 |
-| FP16 | Yes (on GPU) |
-| Metric for Best Model | F1 (macro) |
-| Train/Val Split | 80% / 20% (stratified) |
+Phase 5: Temperature-Scaled Softmax (τ=1.5)
+    └── Converts raw scores to well-calibrated probabilities
+    └── Confidence capped at 0.98 to avoid overconfidence
+```
 
-### Browser Tokenizer
+### Keyword Banks Summary
 
-A **pure JavaScript WordPiece tokenizer** is included (no external dependencies):
-- Loads `vocab.txt` (30,522 tokens from DistilBERT)
-- Implements proper `[CLS]`, `[SEP]`, `[PAD]`, `[UNK]` handling
-- Supports `##` subword continuation tokens
-- Falls back to hash-based tokenization if vocab fails to load
+| Class | Keywords | Example Patterns |
+|-------|:--------:|------------------|
+| DEEP_WORK | ~80 | `implement`, `algorithm`, `.py`, `vs code`, `github.com` |
+| SHALLOW_WORK | ~40 | `fix typo`, `config`, `rename`, `update readme`, `settings` |
+| CREATIVE | ~50 | `design`, `figma`, `wireframe`, `animation`, `dribbble.com` |
+| ADMINISTRATIVE | ~50 | `meeting`, `jira`, `sprint`, `budget`, `timesheet` |
+| COMMUNICATION | ~55 | `email`, `gmail`, `slack`, `presentation`, `draft` |
 
-### Key Metrics
+### Distraction Detection
 
-| Metric | Value |
-|--------|-------|
-| Accuracy | 94.7% |
-| F1 (macro) | 0.947 |
-| Inference Time (Browser) | ~50ms |
-| Load Time | ~30-60s (256MB download) |
+The classifier also recognizes distraction domains (YouTube, Reddit, Twitter, Netflix, etc.) and maps them to `SHALLOW_WORK` with low cognitive demand, providing an additional signal to the meta-classifier.
+
+### Historical: DistilBERT Training Script
+
+The original DistilBERT training is preserved in `colab/3_train_nlp_distilbert.py` for reference:
+- Fine-tuned `distilbert-base-uncased` on ~8,000 synthetic task descriptions
+- 5-class linear head, 94.7% accuracy on synthetic validation set
+- The model file `task_nlp_classifier.onnx` (~256MB) is **no longer loaded** by the frontend
 
 ---
 
@@ -800,7 +809,7 @@ The Python HTTP server provides:
 |---------|---------|--------|------|---------|----------|
 | **COCO 2017** | Vision (YOLOv8) | [cocodataset.org](https://cocodataset.org/) | ~389 images | CC BY 4.0 | Auto-downloaded in Colab |
 | **RAVDESS** | Audio (XGBoost) | [Zenodo 1188976](https://zenodo.org/record/1188976) | 1,440 WAV files | CC BY-NC-SA 4.0 | Auto-downloaded in Colab |
-| **Synthetic Tasks** | NLP (DistilBERT) | Generated in-script | ~5,044 samples | N/A | Generated during training |
+| **Synthetic Tasks** | NLP (historical) | Generated in-script | ~5,044 samples | N/A | Generated during training |
 | **Simulated Fusion** | Meta-Classifier | Generated from models 1-3 | 2,000 samples | N/A | Generated during training |
 | **Synthetic Screenshots** | Screen (MobileNetV3) | Generated in-script | 2,500 images | N/A | Generated during training |
 
@@ -826,17 +835,17 @@ See the `documents/datasets/` directory for sample data files:
 | Vision (YOLOv8) | mAP@0.5 | 0.427 | ~150ms | ~2s |
 | Screen (MobileNetV3) | Val F1 (macro) | 1.000 | ~30ms | ~1s |
 | Audio (XGBoost) | CV F1 (macro) | 0.646 | ~5ms | ~0.5s |
-| NLP (DistilBERT) | Accuracy | 94.7% | ~50ms | ~30-60s |
+| NLP (Keyword Engine) | — | — | **<1ms** | **0s** |
 | Meta (RF) | CV F1 (macro) | 0.697 | ~2ms | ~1s |
-| **Full Pipeline** | — | — | **~240ms total** | **~36-66s** |
+| **Full Pipeline** | — | — | **~190ms total** | **~5s** |
 
 ### Resource Usage (Browser)
 
 | Resource | Approximate Usage |
 |----------|------------------|
-| Total ONNX model size | ~287 MB (12 + 6.1 + 2.4 + 256 + 9.9) |
-| Peak memory (all loaded) | ~420 MB |
-| WebAssembly memory | ~128 MB |
+| Total ONNX model size | ~31 MB (12 + 6.1 + 2.4 + 0 + 9.9) |
+| Peak memory (all loaded) | ~180 MB |
+| WebAssembly memory | ~64 MB |
 | CPU utilization (inference) | ~5-15% (one core) |
 
 ---
@@ -845,10 +854,10 @@ See the `documents/datasets/` directory for sample data files:
 
 1. **Meta-Classifier Retraining** — Retrain on real Voice State features (Energy/Tone/Activity) instead of WPM
 2. **Screen Classifier Enhancement** — Train on real screenshot datasets (e.g., web-screenshots corpus) instead of synthetic
-3. **Model Quantization** — INT8 quantize the DistilBERT model to reduce size from 256MB to ~64MB
+3. **NLP TF-IDF Upgrade** — Train a lightweight TF-IDF + SVM model on real tab title data for higher accuracy than keyword matching
 4. **WebGPU Inference** — Migrate from WASM to WebGPU when ONNX Runtime adds stable support
 5. **Calibration Tuning** — Fine-tune the DSP energy/tone thresholds based on user feedback
-6. **Multi-Language Support** — Already language-agnostic for audio; extend NLP templates
+6. **Multi-Language Support** — Already language-agnostic for audio; extend NLP keyword banks
 7. **Mobile Responsive** — Adapt the dashboard for tablet/mobile form factors
 
 ---

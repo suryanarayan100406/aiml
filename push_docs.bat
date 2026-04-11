@@ -1,6 +1,6 @@
 @echo off
 echo ================================================
-echo  Copying Screen Classifier + Pushing to GitHub
+echo  Copying Models + Pushing to GitHub
 echo ================================================
 
 cd /d "c:\Users\samai\Desktop\codes backup\aiml\ani-flow-optimizer"
@@ -19,38 +19,33 @@ git status
 
 echo.
 echo [3/3] Committing and pushing...
-git commit -m "feat: add trained MobileNetV3 screen classifier (Model 5)
+git commit -m "feat: replace 256MB DistilBERT with lightweight keyword classifier (Model 3)
 
-Model Files:
-- screen_classifier.onnx + .onnx.data (~6.1MB total)
-- screen_class_mapping.json (5 classes + productivity scores)
-- screen_metrics.json (val F1=1.0, 10 epochs, all classes perfect)
+BREAKING CHANGE: task_nlp_classifier.onnx is no longer loaded
+  - Replaced 66M-param DistilBERT ONNX with pure-JS keyword engine
+  - Model size: 256 MB -> 0 MB (zero model files)
+  - Load time: 30-60s -> 0s (instantaneous)
+  - Inference: ~50ms -> <1ms
+  - Total pipeline: ~287 MB -> ~31 MB ONNX footprint
 
-New Code:
-- colab/5_train_screen_classifier.py (training pipeline + onnxscript fix)
-- frontend/js/screen_classifier.js (browser ONNX inference module)
+New NLP Classifier (nlp_tokenizer.js):
+  - 275+ weighted keywords across 5 task classes
+  - URL domain hints (github.com -> DEEP_WORK, figma.com -> CREATIVE, etc.)
+  - Regex app name detection (file.py - VS Code -> DEEP_WORK)
+  - Distraction domain detection (youtube.com, reddit.com -> low demand)
+  - Temperature-scaled softmax (tau=1.5) for calibrated probabilities
 
-Pipeline Updates:
-- Webcam frames -> YOLO (desk detection, unchanged)
-- Screen captures -> MobileNetV3 (productivity classification, NEW)
-- Screen productivity score overrides focus_ratio (Option A)
+Pipeline changes:
+  - inference_pipeline.js: removed NLP ONNX model loading
+  - serve.py: removed task_nlp_classifier.onnx from expected models
+  - TECHNICAL_DOCUMENTATION.md: v3.1 - complete NLP section rewrite
 
-UI Updates:
-- New Screen card: activity, productivity, confidence, per-class bars
-- index.html version bumped to v8
-
-Server Updates:
-- serve.py: added .data MIME type, screen_classifier.onnx to startup check
-
-Documentation:
-- TECHNICAL_DOCUMENTATION.md v3.0.0 audit-corrected:
-  model size 5->6.1MB, frozen layers clarified, actual training
-  results added, resource totals updated, stale notes removed"
+Previous DistilBERT training script preserved in colab/3_train_nlp_distilbert.py"
 
 git push origin main
 
 echo.
 echo ================================================
-echo  DONE! Everything pushed to GitHub.
+echo  DONE! Push complete.
 echo ================================================
 pause

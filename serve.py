@@ -59,7 +59,7 @@ def main():
     expected_models = [
         'desk_distraction_v1.onnx',
         'speech_classifier.onnx', 
-        'task_nlp_classifier.onnx',
+        # NLP: replaced 256MB DistilBERT with lightweight keyword classifier (no model file needed)
         'meta_flow_classifier.onnx',
         'screen_classifier.onnx',
     ]

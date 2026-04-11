@@ -107,7 +107,7 @@ class InferencePipeline {
             const modelPaths = {
                 vision: '../models/desk_distraction_v1.onnx',
                 audio: '../models/speech_classifier.onnx',
-                nlp: '../models/task_nlp_classifier.onnx',
+                // NLP: replaced DistilBERT (256MB) with lightweight keyword classifier (0 model files)
                 meta: '../models/meta_flow_classifier.onnx',
             };
 
@@ -703,50 +703,25 @@ class InferencePipeline {
         }
     }
 
-    /** Run NLP model and extract 3 features */
+    /** Run NLP classifier and extract 3 features */
     async _runNLPModel(taskText) {
         const defaults = { task_class: 0, cognitive_demand: 0.5, confidence: 0.5, class_probs: null, source: 'no-text' };
         if (!taskText || taskText.trim().length === 0) return defaults;
 
-        if (!this.models.nlp) {
-            const demo = this.nlpTokenizer.classifyDemo(taskText);
-            return {
-                task_class: demo.taskClass,
-                cognitive_demand: demo.cognitiveDemand,
-                confidence: demo.confidence,
-                class_probs: null,
-                source: 'keyword-demo',
-            };
-        }
+        // Use the lightweight keyword + URL + regex classifier (replaced DistilBERT 256MB)
+        const extData = this._extensionTabData;
+        const url = extData?.activeTab?.url || '';
+        const result = this.nlpTokenizer.classify(taskText, url);
 
-        try {
-            const { inputIds, attentionMask } = this.nlpTokenizer.tokenize(taskText);
-            const idsTensor = new ort.Tensor('int64', inputIds, [1, 128]);
-            const maskTensor = new ort.Tensor('int64', attentionMask, [1, 128]);
-            const result = await this.models.nlp.run({ input_ids: idsTensor, attention_mask: maskTensor });
-            
-            const logits = Array.from(result.logits.data);
-            const maxLogit = Math.max(...logits);
-            const expLogits = logits.map(l => Math.exp(l - maxLogit));
-            const sumExp = expLogits.reduce((a, b) => a + b, 0);
-            const probs = expLogits.map(e => e / sumExp);
-            
-            const predictedClass = probs.indexOf(Math.max(...probs));
-            
-            console.log(`[DistilBERT] Task="${taskText.substring(0,40)}" → ${this.taskClassNames[predictedClass]} (${(Math.max(...probs)*100).toFixed(0)}%)`);
-            
-            return {
-                task_class: predictedClass,
-                cognitive_demand: this.demandMap[predictedClass] || 0.5,
-                confidence: Math.max(...probs),
-                class_probs: probs,
-                source: 'ONNX Model',
-            };
-        } catch (e) {
-            console.warn('NLP model inference failed:', e);
-            const demo = this.nlpTokenizer.classifyDemo(taskText);
-            return { task_class: demo.taskClass, cognitive_demand: demo.cognitiveDemand, confidence: demo.confidence, class_probs: null, source: 'error' };
-        }
+        console.log(`[TaskClassifier] "${taskText.substring(0,40)}" → ${this.taskClassNames[result.taskClass]} (${(result.confidence*100).toFixed(0)}%)`);
+
+        return {
+            task_class: result.taskClass,
+            cognitive_demand: result.cognitiveDemand,
+            confidence: result.confidence,
+            class_probs: result.probabilities,
+            source: 'Keyword Engine',
+        };
     }
 
     /** Stop all inputs */
