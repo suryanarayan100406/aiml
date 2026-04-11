@@ -21,6 +21,7 @@ class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
     extensions_map = {
         **http.server.SimpleHTTPRequestHandler.extensions_map,
         '.onnx': 'application/octet-stream',
+        '.data': 'application/octet-stream',
         '.wasm': 'application/wasm',
         '.json': 'application/json',
         '.js': 'text/javascript',
@@ -60,6 +61,7 @@ def main():
         'speech_classifier.onnx', 
         'task_nlp_classifier.onnx',
         'meta_flow_classifier.onnx',
+        'screen_classifier.onnx',
     ]
     
     found = 0

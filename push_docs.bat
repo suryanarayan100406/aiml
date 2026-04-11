@@ -1,44 +1,37 @@
 @echo off
 echo ================================================
-echo  Pushing Screen Classifier to GitHub...
+echo  Copying Screen Classifier to models/
 echo ================================================
 
 cd /d "c:\Users\samai\Desktop\codes backup\aiml\ani-flow-optimizer"
 
+copy /Y "output\5\screen_classifier.onnx" "models\screen_classifier.onnx"
+copy /Y "output\5\screen_classifier.onnx.data" "models\screen_classifier.onnx.data"
+copy /Y "output\5\screen_class_mapping.json" "models\screen_class_mapping.json"
+copy /Y "output\5\screen_metrics.json" "models\screen_metrics.json"
+
+echo.
+echo Files copied! Now staging and pushing to GitHub...
+echo.
+
 git add -A
 git status
-echo.
-echo Committing...
-git commit -m "feat: add MobileNetV3-Small screen productivity classifier (Model 5)
+git commit -m "feat: add trained MobileNetV3 screen classifier (Model 5)
 
-New Model:
-- colab/5_train_screen_classifier.py: CLIP-distilled MobileNetV3-Small
-  training pipeline with synthetic screenshot generation
-- frontend/js/screen_classifier.js: Browser ONNX inference module
-  with prediction smoothing and heuristic fallback
+- screen_classifier.onnx + .onnx.data (~6MB total)
+- screen_class_mapping.json (5 classes + productivity scores)
+- screen_metrics.json (val F1=1.0, 10 epochs)
+- Added onnxscript dependency fix in training script
+- New screen_classifier.js browser inference module
+- Updated inference_pipeline.js for webcam/screen split routing
+- Updated index.html with screen analysis card (v8)
+- Updated ui_controller.js for screen card rendering
+- Updated TECHNICAL_DOCUMENTATION.md to v3.0.0"
 
-Pipeline Changes:
-- Webcam frames -> YOLO (desk object detection, unchanged)
-- Screen captures -> MobileNetV3 (productivity classification, NEW)
-- Screen productivity score replaces focus_ratio (Option A, no retrain)
-
-UI Updates:
-- New Screen card with activity, productivity, confidence metrics
-- Per-class probability bars (Code/Docs/Chat/Distract/Neutral)
-- Script version bumped to v8
-
-Documentation:
-- Updated TECHNICAL_DOCUMENTATION.md to v3.0.0
-- Added Model 5 section with full specification
-- Updated architecture diagram showing split pipeline
-- Added sample_screen_screenshots.json dataset metadata"
-
-echo.
-echo Pushing...
 git push origin main
 
 echo.
 echo ================================================
-echo  DONE! Screen classifier pushed to GitHub.
+echo  DONE! All pushed to GitHub.
 echo ================================================
 pause

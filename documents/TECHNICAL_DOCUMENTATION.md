@@ -812,7 +812,7 @@ See the `documents/datasets/` directory for sample data files:
 | Model | Training Metric | Value | Browser Inference | Load Time |
 |-------|----------------|-------|-------------------|-----------|
 | Vision (YOLOv8) | mAP@0.5 | 0.427 | ~150ms | ~2s |
-| Screen (MobileNetV3) | Val F1 (macro) | TBD* | ~30ms | ~1s |
+| Screen (MobileNetV3) | Val F1 (macro) | 1.000 | ~30ms | ~1s |
 | Audio (XGBoost) | CV F1 (macro) | 0.646 | ~5ms | ~0.5s |
 | NLP (DistilBERT) | Accuracy | 94.7% | ~50ms | ~30-60s |
 | Meta (RF) | CV F1 (macro) | 0.697 | ~2ms | ~1s |
