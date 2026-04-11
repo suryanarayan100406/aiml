@@ -28,12 +28,15 @@ class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
         '.css': 'text/css',
         '.html': 'text/html',
         '.txt': 'text/plain',
+        '.moc3': 'application/octet-stream',
+        '.png': 'image/png',
     }
     
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Cross-Origin-Opener-Policy', 'same-origin')
-        self.send_header('Cross-Origin-Embedder-Policy', 'require-corp')
+        # Note: COEP/COOP removed to allow CDN scripts (PixiJS, Live2D Core).
+        # ONNX Runtime Web will use single-threaded WASM fallback, which is fine
+        # for our lightweight models (screen: 6MB, meta: 10MB).
         # Prevent caching of JS/CSS/HTML during development
         if self.path.endswith(('.js', '.css', '.html')):
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')

@@ -54,6 +54,26 @@
         // Update model status badges after init
         updateModelLoadStatus();
 
+        // Initialize Live2D companion (non-blocking)
+        updateLoadingStatus('Loading companion...', 90);
+        state.companion = new AniCompanion();
+        state.companion.init('companion-canvas-container').then(loaded => {
+            if (loaded) {
+                console.log('[UI] Companion loaded successfully');
+                showToast('✨', 'Hiyori companion loaded!');
+            } else {
+                console.warn('[UI] Companion could not load — continuing without it');
+            }
+        });
+
+        // PiP button
+        const pipBtn = $('#btn-pip-companion');
+        if (pipBtn) {
+            pipBtn.addEventListener('click', () => {
+                if (state.companion) state.companion.togglePiP();
+            });
+        }
+
         updateLoadingStatus('Ready!', 100);
         setTimeout(() => {
             $('#loading-overlay').classList.add('fade-out');
@@ -405,6 +425,14 @@
         const focusBtn = $('#btn-focus-mode');
         if (focusBtn) {
             focusBtn.style.display = response.suggestFocus ? 'inline-flex' : 'none';
+        }
+
+        // Trigger Live2D companion — speak + animate
+        if (state.companion && state.companion.model) {
+            state.companion.onGuardianMessage(response);
+            // Also update PiP status bar if active
+            const qualityStr = `${response.workQualityProbability}% Quality`;
+            state.companion.updatePipStatus(`${response.mood?.toUpperCase() || 'IDLE'} • ${qualityStr}`);
         }
     }
 

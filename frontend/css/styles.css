@@ -367,6 +367,57 @@ body {
     grid-column: 3 / 4;
 }
 
+/* ─── Companion Panel (Live2D Hiyori) ──────────────────────── */
+.flow-state-layout {
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+    min-height: 320px;
+}
+
+.companion-panel {
+    flex: 0 0 200px;
+    min-height: 280px;
+    border-radius: var(--radius-md);
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(139, 92, 246, 0.15);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.companion-panel canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+.companion-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.companion-loader-ring {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--border-glass);
+    border-top-color: var(--accent-purple);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.flow-info-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
 /* ─── Flow State Display ───────────────────────────────────── */
 .flow-display {
     display: flex;
