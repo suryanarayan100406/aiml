@@ -80,7 +80,7 @@ These signals are **fused into an 11-dimensional feature vector** (screen produc
 │  │          tools, distractions) │  │  + DSP Engine   │  │                │   │
 │  │                               │  │                │  │  Input:        │   │
 │  │  Screen ──► MobileNetV3-S     │  │  Input:        │  │  128 WordPiece  │   │
-│  │  Capture    (224×224, ~5 MB)   │  │  52-dim vector  │  │  tokens        │   │
+│  │  Capture    (224×224, ~6 MB)   │  │  52-dim vector  │  │  tokens        │   │
 │  │             ↓                 │  │                │  │                │   │
 │  │         productivity score    │  │  Output:       │  │  Output:       │   │
 │  │         (code/docs/chat/      │  │  4 features    │  │  3 features    │   │
@@ -509,11 +509,12 @@ scores[4] = (1-tab)*0.15 + (1-phone)*0.15 + focus*0.2 + demand*0.15
 | **Architecture** | MobileNetV3-Small (torchvision) + custom classifier head |
 | **Base Model** | `mobilenet_v3_small` (pretrained on ImageNet) |
 | **Training Method** | CLIP knowledge distillation on synthetic screenshots |
+| **Total Params** | 1,522,981 (1,240,613 trainable — 81.5%) |
 | **Classes (5)** | `PRODUCTIVE_CODE`, `PRODUCTIVE_DOCS`, `COMMUNICATION`, `DISTRACTION`, `NEUTRAL` |
 | **Input Shape** | `[1, 3, 224, 224]` — RGB, NCHW, ImageNet normalized |
 | **Output Shape** | `[1, 5]` — class logits (softmaxed in browser) |
 | **ONNX Opset** | 14 |
-| **Model Size** | ~5 MB |
+| **Model Size** | ~6.1 MB (295KB ONNX + 5.8MB external data file) |
 | **Normalization** | `mean=[0.485, 0.456, 0.406]`, `std=[0.229, 0.224, 0.225]` |
 
 ### Screen Productivity Classes
@@ -541,26 +542,26 @@ Step 2: (Optional) CLIP ViT-B/32 label verification
         └── Verify synthetic labels agree with CLIP zero-shot classification
 
 Step 3: Fine-tune MobileNetV3-Small
-        └── Freeze early layers, train last 3 blocks + classifier
-        └── Classifier head: 576 → 1024 → 5 (with Hardswish + Dropout)
+        └── Freeze features[0:10], train features[10:12] + classifier
+        └── Classifier head: 576 → 1024 → 5 (with Hardswish + Dropout(0.3))
 
 Step 4: Export to ONNX
-        └── screen_classifier.onnx (~5 MB)
+        └── screen_classifier.onnx + .onnx.data (~6.1 MB total)
 ```
 
 ### Training Configuration
 
 | Parameter | Value |
 |-----------|-------|
-| Epochs | 15 (+ early stopping, patience 5) |
+| Epochs | 15 max (early stopping patience=5, stopped at epoch **10**) |
 | Batch Size | 32 |
 | Image Size | 224×224 |
 | Optimizer | AdamW (lr=1e-4, weight_decay=0.01) |
-| Scheduler | CosineAnnealing (η_min=1e-6) |
-| Frozen Layers | features[0-8] (early blocks) |
-| Trainable Layers | features[-3:] + classifier |
-| Augmentation | RandomCrop, HFlip, ColorJitter, Grayscale |
-| Train/Val Split | 80% / 20% |
+| Scheduler | CosineAnnealing (T_max=15, η_min=1e-6) |
+| Frozen Layers | features[0:10] (first 10 blocks) |
+| Trainable Layers | features[10:12] + classifier (81.5% of params) |
+| Augmentation | RandomCrop(+32), HFlip(0.3), ColorJitter, Grayscale(0.05) |
+| Train/Val Split | 80% / 20% (2000 train, 500 val) |
 
 ### Integration: Focus Ratio Override (Option A)
 
@@ -588,10 +589,21 @@ To avoid flickering between classes:
 ### Fallback: Heuristic Classification
 
 When the ONNX model is not available, a color-analysis heuristic runs:
-- **Dark screenshots** (>60% dark pixels) → likely code/IDE
-- **Bright screenshots** (>60% bright pixels) → likely docs
-- **Colorful screenshots** (high saturation variance) → likely distraction
+- **Dark screenshots** (>60% dark pixels, brightness <60) → likely code/IDE
+- **Bright screenshots** (>60% bright pixels, brightness >200) → likely docs
+- **Colorful screenshots** (high saturation, max-min channel >80) → likely distraction
 - **Moderate** → neutral
+
+### Actual Training Results
+
+| Metric | Value |
+|--------|-------|
+| Best Val Accuracy | **1.000** |
+| Best Val F1 (macro) | **1.000** |
+| Epochs Trained | 10/15 (early stopped) |
+| Per-Class F1 | 1.000 for all 5 classes |
+| CLIP Verification | 56% agreement (expected — synthetic vs semantic gap) |
+| ONNX Export Size | 6.1 MB (with external weights) |
 
 ---
 
@@ -774,9 +786,9 @@ python serve.py
 The Python HTTP server provides:
 - CORS headers (`Access-Control-Allow-Origin: *`)
 - COEP/COOP headers for SharedArrayBuffer support
-- Correct MIME types for `.onnx`, `.wasm`, `.json` files
+- Correct MIME types for `.onnx`, `.data`, `.wasm`, `.json` files
 - Cache-busting headers for development
-- Model file presence check at startup
+- Startup model presence check (all 5 models including `screen_classifier.onnx`)
 
 ---
 
@@ -818,13 +830,11 @@ See the `documents/datasets/` directory for sample data files:
 | Meta (RF) | CV F1 (macro) | 0.697 | ~2ms | ~1s |
 | **Full Pipeline** | — | — | **~240ms total** | **~36-66s** |
 
-> *Screen classifier metrics are populated after first Colab training run.
-
 ### Resource Usage (Browser)
 
 | Resource | Approximate Usage |
 |----------|------------------|
-| Total ONNX model size | ~285 MB (12 + 5 + 2.4 + 256 + 9.9) |
+| Total ONNX model size | ~287 MB (12 + 6.1 + 2.4 + 256 + 9.9) |
 | Peak memory (all loaded) | ~420 MB |
 | WebAssembly memory | ~128 MB |
 | CPU utilization (inference) | ~5-15% (one core) |
