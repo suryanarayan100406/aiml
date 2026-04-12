@@ -55,9 +55,35 @@
         updateModelLoadStatus();
 
         updateLoadingStatus('Ready!', 100);
+        
+        // Setup Auth Button Trigger
+        $('#btn-auth-login')?.addEventListener('click', async () => {
+            const inputName = $('#auth-name-input').value.trim() || 'Creator_01';
+            state.profile.userId = inputName;
+            await state.profile.save();
+            await state.profile.load(); // Reload their data if it existed
+            updateUserBadge();
+            
+            $('#auth-overlay').classList.add('fade-out');
+            setTimeout(() => {
+                $('#auth-overlay').classList.add('hidden');
+                $('#auth-overlay').classList.remove('fade-out');
+            }, 500);
+            showToast('✅', 'Profile Calibrated. Welcome!');
+        });
+
         setTimeout(() => {
             $('#loading-overlay').classList.add('fade-out');
             $('#app').classList.remove('hidden');
+            
+            // Auth Check
+            if (state.profile.userId === 'default' || !localStorage.getItem('ani_active_user')) {
+                $('#auth-overlay').classList.remove('hidden');
+            } else {
+                $('#auth-overlay').classList.add('hidden');
+                $('#settings-name').value = state.profile.userId;
+            }
+
             setTimeout(() => $('#loading-overlay').style.display = 'none', 600);
         }, 500);
     }
@@ -310,6 +336,9 @@
         // Save session summary
         if (state.results.length > 0) {
             const avgQuality = state.results.reduce((s, r) => s + r.workQuality, 0) / state.results.length;
+            const avgWpm = state.results.reduce((s, r) => s + (r.wpm || 0), 0) / state.results.length;
+            const avgTabs = state.results.reduce((s, r) => s + (r.vision?.tabCount || 0), 0) / state.results.length;
+
             const session = {
                 date: new Date().toISOString(),
                 duration: Math.round((Date.now() - state.sessionStart) / 1000),
@@ -318,11 +347,19 @@
                 dominantState: getDominantState(),
                 task: $('#task-input')?.value || '',
                 workQuality: avgQuality,
+                wpm: Math.round(avgWpm),
+                tabs: Math.round(avgTabs)
             };
 
             state.profile.addSession(session);
             state.profile.saveSession(session);
-            state.profile.save();
+            
+            // Re-calibrate baseline asynchronously based on all sessions
+            state.profile.getAllSessions().then(sessionsData => {
+                state.profile.calibrate(sessionsData);
+                state.profile.save();
+                updateUserBadge(); // Update UI to reflect any calibration changes
+            });
         }
 
         state.pipeline.stop();
@@ -1210,6 +1247,19 @@
         }
         const name = $('#user-name');
         if (name) name.textContent = state.profile.userId !== 'default' ? state.profile.userId : 'User';
+        
+        // Update Calibration Info in Settings Panel
+        const calInfo = document.querySelector('.settings-section p:nth-of-type(2)'); // or an ID if it existed
+        const calBox = document.getElementById('calibration-info'); // assuming ID is set in HTML next
+        if (calBox) {
+            if (state.profile.calibrationSessions >= 5) {
+                calBox.innerHTML = `<span style="color:var(--accent-green);font-weight:700;">✔ Calibrated</span> (${state.profile.calibrationSessions} sessions)<br>
+                                    <span style="font-size:0.85em;color:var(--text-muted)">Baseline: ${Math.round(state.profile.wpmBaseline || 0)} WPM, ${Math.round(state.profile.tabBaseline || 0)} Tabs Avg.</span>`;
+            } else {
+                calBox.innerHTML = `Not calibrated (${state.profile.calibrationSessions}/5 sessions).<br>
+                                    <span style="font-size:0.85em;color:var(--text-muted)">Need 5 full sessions to lock baseline.</span>`;
+            }
+        }
     }
 
     function updateModelStatus(status, text) {

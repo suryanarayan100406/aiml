@@ -3,8 +3,9 @@
  * Stores data in IndexedDB for persistence across sessions.
  */
 class UserFlowProfile {
-    constructor(userId = 'default') {
-        this.userId = userId;
+    constructor(userId = null) {
+        // Automatically load last active user or default
+        this.userId = userId || localStorage.getItem('ani_active_user') || 'default';
         this.tabBaseline = null;
         this.wpmBaseline = null;
         this.calibrationSessions = 0;
@@ -33,6 +34,9 @@ class UserFlowProfile {
 
     /** Save profile to IndexedDB */
     async save() {
+        // Persist the active user
+        localStorage.setItem('ani_active_user', this.userId);
+        
         const db = await this.openDB();
         const tx = db.transaction('profiles', 'readwrite');
         tx.objectStore('profiles').put({
