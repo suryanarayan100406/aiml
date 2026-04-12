@@ -5,7 +5,7 @@ runs/
 *.zip
 *.pt
 
-# Model files (trained locally or on Colab — too large for git)
+# Model files logic
 models/*.onnx
 models/*.pkl
 models/*.npy
@@ -13,6 +13,18 @@ models/vision_runs/
 models/nlp_training_output/
 models/task_nlp_model/
 models/*.onnx.data
+
+# WHITELIST active small models for Vercel/GitHub
+!models/desk_distraction_v1.onnx
+!models/meta_flow_classifier.onnx
+!models/screen_classifier.onnx
+!models/screen_classifier.onnx.data
+!models/speech_classifier.onnx
+!models/speech_scaler.pkl
+!models/meta_flow_classifier.pkl
+
+# STRICTLY IGNORE huge models (>100MB)
+models/task_nlp_classifier.onnx
 
 # Keep model metadata (small JSON + vocab)
 !models/*_metrics.json

@@ -137,23 +137,42 @@ class UserFlowProfile {
         return new Promise(r => { tx.oncomplete = r; });
     }
 
-    /** Get all sessions from IndexedDB */
+    /** Get all sessions from IndexedDB for the current user */
     async getAllSessions() {
         const db = await this.openDB();
         const tx = db.transaction('sessions', 'readonly');
         const req = tx.objectStore('sessions').getAll();
         return new Promise(r => {
-            req.onsuccess = () => r(req.result || []);
+            req.onsuccess = () => {
+                const all = req.result || [];
+                // ONLY return sessions belonging to THIS specific user
+                const userSessions = all.filter(s => s.id && s.id.startsWith(`${this.userId}_`));
+                r(userSessions);
+            };
             req.onerror = () => r([]);
         });
     }
 
-    /** Clear all data */
+    /** Clear all data for the current user */
     async clearAll() {
         const db = await this.openDB();
         const tx = db.transaction(['profiles', 'sessions'], 'readwrite');
-        tx.objectStore('profiles').clear();
-        tx.objectStore('sessions').clear();
+        
+        // Delete only the current user's profile
+        tx.objectStore('profiles').delete(this.userId);
+        
+        // Delete only the current user's sessions
+        const sessionStore = tx.objectStore('sessions');
+        const req = sessionStore.getAll();
+        req.onsuccess = () => {
+            const all = req.result || [];
+            all.forEach(s => {
+                if (s.id && s.id.startsWith(`${this.userId}_`)) {
+                    sessionStore.delete(s.id);
+                }
+            });
+        };
+
         this.tabBaseline = null;
         this.wpmBaseline = null;
         this.calibrationSessions = 0;
