@@ -28,6 +28,7 @@ class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
         '.css': 'text/css',
         '.html': 'text/html',
         '.txt': 'text/plain',
+        '.md': 'text/markdown',
     }
     
     def end_headers(self):
@@ -35,7 +36,7 @@ class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Cross-Origin-Opener-Policy', 'same-origin')
         self.send_header('Cross-Origin-Embedder-Policy', 'require-corp')
         # Prevent caching of JS/CSS/HTML during development
-        if self.path.endswith(('.js', '.css', '.html')):
+        if self.path.endswith(('.js', '.css', '.html', '.md')):
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
         super().end_headers()
     
@@ -50,7 +51,7 @@ def main():
     print("🧠 ANI Creative Flow Optimizer — Local Server")
     print("=" * 60)
     print(f"   Serving from: {PROJECT_ROOT}")
-    print(f"   Frontend:     http://localhost:{PORT}/frontend/")
+    print(f"   Frontend:     http://localhost:{PORT}/")
     print(f"   Models dir:   {os.path.join(PROJECT_ROOT, 'models')}")
     print()
     
@@ -83,7 +84,7 @@ def main():
         print(f"\n   ✅ All models found! Frontend will run in REAL inference mode.\n")
     
     with socketserver.TCPServer(("", PORT), CORSRequestHandler) as httpd:
-        print(f"   🌐 Server running at http://localhost:{PORT}/frontend/")
+        print(f"   🌐 Server running at http://localhost:{PORT}/")
         print(f"   Press Ctrl+C to stop\n")
         try:
             httpd.serve_forever()

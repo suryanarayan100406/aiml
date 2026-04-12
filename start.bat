@@ -26,7 +26,7 @@ timeout /t 3 /nobreak >nul
 
 :: 3. Open the dashboard in default browser
 echo [INFO] Opening ANI Dashboard in your web browser...
-start http://localhost:8080/frontend/
+start http://localhost:8080/
 
 echo.
 echo =====================================================================

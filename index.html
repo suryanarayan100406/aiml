@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANI — Creative Flow Optimizer</title>
+    <link rel="stylesheet" href="landing.css">
+</head>
+<body>
+    <!-- Custom Cursor -->
+    <div class="cursor-dot" id="cursor-dot"></div>
+    <div class="cursor-ring" id="cursor-ring"></div>
+
+    <!-- Phase 1: Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <header class="loader-header">
+            <span class="eyebrow">CREATIVE FLOW OPTIMIZER</span>
+        </header>
+
+        <div class="loader-center">
+            <div id="loader-percentage" class="percentage">0</div>
+        </div>
+
+        <div class="loader-footer">
+            <div class="progress-bar-container">
+                <div id="loader-progress" class="progress-bar-fill"></div>
+            </div>
+            <div class="marquee-container">
+                <div class="marquee" id="marquee">
+                    CREATIVE FLOW OPTIMIZER · UNLOCK YOUR POTENTIAL · AI-POWERED WORKFLOW · 
+                    CREATIVE FLOW OPTIMIZER · UNLOCK YOUR POTENTIAL · AI-POWERED WORKFLOW · 
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase 2: Homepage -->
+    <div id="homepage" class="homepage hidden">
+        <canvas id="particle-canvas"></canvas>
+
+        <nav class="main-nav">
+            <div class="nav-brand">CFO</div>
+            <div class="nav-links">
+                <a href="#features">FEATURES</a>
+                <a href="/docs/">DOCS</a>
+                <a href="/frontend/" class="accent-link">LAUNCH APP ↗</a>
+            </div>
+        </nav>
+
+        <main class="hero-section">
+            <p class="hero-eyebrow">AI-POWERED COGNITIVE ANALYZER</p>
+            <h1 class="hero-title">
+                UNLOCK<br>
+                YOUR<br>
+                <span class="accent-text">CREATIVE</span><br>
+                FLOW
+            </h1>
+            <p class="hero-body">
+                ANI monitors your workspace in real-time through vision, audio, and text.<br>
+                It fuses these signals to classify your cognitive state—propelling you into deep work.
+            </p>
+            <a href="/frontend/" class="cta-button">LAUNCH DASHBOARD ↗</a>
+        </main>
+
+        <footer class="stats-bar">
+            <div class="stat-item">4 AI MODELS</div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">&lt; 5S STARTUP</div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">100% ON-DEVICE</div>
+        </footer>
+    </div>
+
+    <script src="landing.js"></script>
+</body>
+</html>

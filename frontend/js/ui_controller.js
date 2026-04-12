@@ -940,8 +940,8 @@
         }
 
         // Y-axis labels
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.font = '10px JetBrains Mono, monospace';
+        ctx.fillStyle = 'var(--text-muted)';
+        ctx.font = '10px "Courier New", Courier, monospace';
         ctx.textAlign = 'right';
         const labels = ['Deep', 'Soft', 'Dist', 'Switch', 'Pseudo'];
         labels.forEach((label, i) => {
@@ -950,46 +950,32 @@
 
         if (state.results.length < 2) return;
 
-        // Draw flow state line
-        const colors = ['#EF4444', '#F59E0B', '#F97316', '#10B981', '#8B5CF6'];
+        // Draw flow state line - Brutalist Colors (Red = Distracted/Pseudo, Lime = Flow)
+        const colors = ['#ff3333', '#ff3333', '#ff3333', '#b8ff3d', '#b8ff3d'];
         const points = state.results.map((r, i) => ({
             x: padding.left + (i / (state.results.length - 1)) * chartW,
             y: padding.top + ((4 - r.flowState) / 4) * chartH,
             state: r.flowState,
         }));
 
-        // Gradient fill under line
-        const gradient = ctx.createLinearGradient(0, padding.top, 0, h - padding.bottom);
-        gradient.addColorStop(0, 'rgba(139, 92, 246, 0.15)');
-        gradient.addColorStop(1, 'rgba(139, 92, 246, 0)');
+        // Removed gradient fill for brutalist wireframe look
 
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, h - padding.bottom);
-        points.forEach(p => ctx.lineTo(p.x, p.y));
-        ctx.lineTo(points[points.length - 1].x, h - padding.bottom);
-        ctx.fillStyle = gradient;
-        ctx.fill();
-
-        // Draw line
+        // Draw brutalist sharp line
         ctx.beginPath();
         ctx.moveTo(points[0].x, points[0].y);
         for (let i = 1; i < points.length; i++) {
-            const cp1x = (points[i - 1].x + points[i].x) / 2;
-            ctx.bezierCurveTo(cp1x, points[i - 1].y, cp1x, points[i].y, points[i].x, points[i].y);
+            ctx.lineTo(points[i].x, points[i].y);
         }
-        ctx.strokeStyle = '#8B5CF6';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#b8ff3d';
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        // Draw points
+        // Draw stark points
         points.forEach(p => {
             ctx.beginPath();
-            ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+            ctx.rect(p.x - 3, p.y - 3, 6, 6);
             ctx.fillStyle = colors[p.state];
             ctx.fill();
-            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
         });
 
         // Draw dip annotations — red dashed lines + reason icons at each drop
@@ -1032,8 +1018,8 @@
                 width: 3px;
                 height: 2px;
                 margin: 0 1px;
-                background: linear-gradient(to top, #06B6D4, #8B5CF6);
-                border-radius: 2px;
+                background: #b8ff3d;
+                border-radius: 0;
                 transition: height 0.05s ease;
                 vertical-align: bottom;
             `;

@@ -1,0 +1,286 @@
+/* ═══════════════════════════════════════════════════════════
+   ANI Landing Page — Dark Editorial Brutalism
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+    --bg-color: #070707;
+    --text-color: #e4e0d8;
+    --accent-color: #b8ff3d;
+    --font-heading: 'Arial Black', Arial, sans-serif;
+    --font-body: 'Courier New', Courier, monospace;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    cursor: none; /* Custom cursor */
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-body);
+    overflow: hidden; /* Prevent scrolling during loading, JS will re-enable */
+    height: 100vh;
+    width: 100vw;
+}
+
+.hidden {
+    display: none !important;
+    opacity: 0;
+    pointer-events: none;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* ─── Custom Cursor ────────────────────────────────────────── */
+.cursor-dot {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 6px;
+    background-color: var(--accent-color);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 9999;
+    mix-blend-mode: difference;
+}
+
+.cursor-ring {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(228, 224, 216, 0.4);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 9998;
+    mix-blend-mode: difference;
+    transition: width 0.2s, height 0.2s;
+}
+
+/* ─── Phase 1: Loading Screen ────────────────────────────── */
+.loading-screen {
+    position: fixed;
+    inset: 0;
+    background-color: var(--bg-color);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 2rem;
+    transition: opacity 0.65s ease;
+}
+
+.loader-header {
+    text-align: left;
+}
+
+.eyebrow {
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+.loader-center {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.percentage {
+    font-family: var(--font-heading);
+    font-size: 15vw;
+    line-height: 1;
+    letter-spacing: -0.05em;
+}
+
+.loader-footer {
+    width: 100%;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 1px;
+    background-color: rgba(228, 224, 216, 0.2);
+    margin-bottom: 1rem;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: var(--accent-color);
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+.marquee-container {
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.marquee {
+    display: inline-block;
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+    animation: scroll 15s linear infinite;
+}
+
+@keyframes scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* ─── Phase 2: Homepage ──────────────────────────────────── */
+.homepage {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+    opacity: 1;
+    transition: opacity 1s ease;
+}
+
+#particle-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+/* Navigation */
+.main-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 3rem;
+    z-index: 10;
+}
+
+.nav-brand {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    letter-spacing: 0.1em;
+}
+
+.nav-links {
+    display: flex;
+    gap: 3rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.15em;
+}
+
+.nav-links a {
+    transition: color 0.2s;
+}
+
+.nav-links a:hover {
+    color: var(--accent-color);
+}
+
+.accent-link {
+    color: var(--accent-color);
+}
+
+/* Hero Section */
+.hero-section {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 3rem;
+    z-index: 10;
+}
+
+.hero-eyebrow {
+    font-size: 0.85rem;
+    letter-spacing: 0.3em;
+    margin-bottom: 2rem;
+    opacity: 0.8;
+}
+
+.hero-title {
+    font-family: var(--font-heading);
+    font-size: clamp(3rem, 8vw, 8rem);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    margin-bottom: 2rem;
+}
+
+.accent-text {
+    color: var(--accent-color);
+}
+
+.hero-body {
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    line-height: 1.6;
+    max-width: 450px;
+    margin-bottom: 3rem;
+    opacity: 0.7;
+}
+
+.cta-button {
+    display: inline-block;
+    align-self: flex-start;
+    background-color: var(--accent-color);
+    color: var(--bg-color);
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    padding: 1rem 2rem;
+    letter-spacing: 0.1em;
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.cta-button:hover {
+    background-color: #c9ff66;
+    transform: translateY(-2px);
+}
+
+/* Stats Bar */
+.stats-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 3rem;
+    border-top: 1px solid rgba(228, 224, 216, 0.1);
+    z-index: 10;
+}
+
+.stat-item {
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    opacity: 0.7;
+}
+
+.stat-divider {
+    flex-grow: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(228, 224, 216, 0.1), transparent);
+    margin: 0 2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .nav-links { gap: 1.5rem; }
+    .hero-title { font-size: 12vw; }
+    .stats-bar {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    .stat-divider { display: none; }
+}
