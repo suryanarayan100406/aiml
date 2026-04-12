@@ -524,17 +524,19 @@
             flowCircle.style.background = `conic-gradient(from 0deg, ${flowColors[result.flowState]} 0%, ${flowColors[result.flowState]}40 100%)`;
         }
 
-        $('#flow-emoji').textContent = result.flowEmoji;
-        $('#flow-label').textContent = result.flowLabel;
-        $('#confidence-badge').textContent = `${(result.confidence * 100).toFixed(0)}% conf`;
+        if ($('#flow-emoji')) $('#flow-emoji').textContent = result.flowEmoji;
+        if ($('#flow-label')) $('#flow-label').textContent = result.flowLabel;
+        if ($('#confidence-badge')) $('#confidence-badge').textContent = `${(result.confidence * 100).toFixed(0)}% conf`;
 
         // Probability bars
-        result.probabilities.forEach((prob, i) => {
-            const fill = $(`.prob-fill[data-class="${i}"]`);
-            if (fill) fill.style.width = `${prob * 100}%`;
-            const vals = $$('.prob-val');
-            if (vals[i]) vals[i].textContent = `${(prob * 100).toFixed(0)}%`;
-        });
+        if (result.probabilities && result.probabilities.length > 0) {
+            result.probabilities.forEach((prob, i) => {
+                const fill = $(`.prob-fill[data-class="${i}"]`);
+                if (fill) fill.style.width = `${prob * 100}%`;
+                const vals = $$('.prob-val');
+                if (vals && vals[i]) vals[i].textContent = `${(prob * 100).toFixed(0)}%`;
+            });
+        }
 
         // ─── VISION CARD ─────────────────────────────────────
         if (result.vision) {
