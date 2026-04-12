@@ -54,30 +54,10 @@
         // Update model status badges after init
         updateModelLoadStatus();
 
-        // PiP button
-        const pipBtn = $('#btn-pip-companion');
-        if (pipBtn) {
-            pipBtn.addEventListener('click', () => {
-                if (state.companion) state.companion.togglePiP();
-            });
-        }
-
         updateLoadingStatus('Ready!', 100);
         setTimeout(() => {
             $('#loading-overlay').classList.add('fade-out');
             $('#app').classList.remove('hidden');
-            
-            // Initialize Live2D companion (non-blocking) AFTER app is visible so canvas isn't 0x0
-            state.companion = new AniCompanion();
-            state.companion.init('companion-canvas-container').then(loaded => {
-                if (loaded) {
-                    console.log('[UI] Companion loaded successfully');
-                    showToast('✨', 'Hiyori companion loaded!');
-                } else {
-                    console.warn('[UI] Companion could not load — continuing without it');
-                }
-            });
-
             setTimeout(() => $('#loading-overlay').style.display = 'none', 600);
         }, 500);
     }
@@ -367,6 +347,17 @@
 
         try {
             const result = await state.pipeline.analyze(taskText);
+            
+            // ── DIP DETECTION: Compare against previous result ──
+            const prev = state.results.length > 0 ? state.results[state.results.length - 1] : null;
+            if (prev && result.flowState < prev.flowState) {
+                // Flow dropped — figure out exactly WHY from sensor data
+                const reason = buildDipReason(result);
+                if (reason) {
+                    showDipNotification(reason, prev.flowState, result.flowState);
+                }
+            }
+            
             state.results.push(result);
             updateDashboard(result);
             updateSessionDuration();
@@ -377,6 +368,78 @@
         } catch (err) {
             console.error('Inference error:', err);
         }
+    }
+
+    /**
+     * Inspect the raw sensor data and return a human-readable string 
+     * explaining what single trigger caused the graph to dip.
+     */
+    function buildDipReason(result) {
+        // Priority order: most critical trigger first
+        if (result.vision?.phoneVisible === 'Yes') {
+            return { icon: '📱', trigger: 'Phone detected on your desk', advice: 'Put it away — every glance costs ~23 min of focus.' };
+        }
+        if (result.vision?.activeTabCategory === 'distraction') {
+            const tabName = result.vision.activeTabTitle || 'a distraction site';
+            // Extract site name from "Video Title - YouTube" style strings
+            const site = tabName.split(/[-–—|]/).pop().trim();
+            return { icon: '🌐', trigger: `You switched to ${site}`, advice: 'Close it and get back to your task.' };
+        }
+        if (result.screen?.className === 'DISTRACTION') {
+            return { icon: '🎮', trigger: 'Screen shows non-productive content', advice: 'Switch back to your work window.' };
+        }
+        if (result.vision?.tabCount > 20) {
+            return { icon: '📑', trigger: `${result.vision.tabCount} tabs open`, advice: 'Close tabs you\'re not using — tab overload kills focus.' };
+        }
+        if (result.vision?.switchRate > 5) {
+            return { icon: '🔄', trigger: `Rapid tab switching detected (${result.vision.switchRate}/min)`, advice: 'Pick one task and stay on it.' };
+        }
+        if (result.audio?.energyLevel === 'Silent' && result.audio?.activity === '0%') {
+            return { icon: '😴', trigger: 'No activity detected — you may have zoned out', advice: 'Take a stretch, then re-engage.' };
+        }
+        // Generic fallback
+        return { icon: '📉', trigger: 'Focus quality dropped', advice: 'Check your environment for distractions.' };
+    }
+
+    /** 
+     * Show a prominent, styled notification when the graph dips.
+     * Different from a regular toast — it's bigger, red-tinted, and stays longer.
+     */
+    function showDipNotification(reason, fromState, toState) {
+        const stateNames = ['Pseudo-Working', 'Task-Switching', 'Distracted', 'Soft Flow', 'Deep Flow'];
+        const container = $('#toast-container');
+        
+        const toast = document.createElement('div');
+        toast.className = 'toast dip-toast';
+        toast.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <span style="font-size:1.6rem;">${reason.icon}</span>
+                <div>
+                    <div style="font-weight:700; color:#FCA5A5; font-size:0.95rem;">⚠ Flow Dip Detected</div>
+                    <div style="font-size:0.7rem; color:#9ca3af;">${stateNames[fromState]} → ${stateNames[toState]}</div>
+                </div>
+            </div>
+            <div style="font-size:0.85rem; color:#e5e7eb; margin-bottom:4px;">${reason.trigger}</div>
+            <div style="font-size:0.75rem; color:#fbbf24; font-style:italic;">${reason.advice}</div>
+        `;
+        toast.style.cssText = `
+            background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(30,30,45,0.95));
+            border: 1px solid rgba(239,68,68,0.4);
+            border-left: 4px solid #EF4444;
+            padding: 14px 18px;
+            border-radius: 12px;
+            backdrop-filter: blur(12px);
+            animation: slideInRight 0.4s ease;
+            max-width: 380px;
+            box-shadow: 0 8px 32px rgba(239,68,68,0.2);
+        `;
+        container.appendChild(toast);
+
+        // Stay visible for 8 seconds (longer than normal toasts)
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            setTimeout(() => toast.remove(), 400);
+        }, 8000);
     }
 
     // ─── Guardian Display ─────────────────────────────────────
@@ -425,14 +488,6 @@
         const focusBtn = $('#btn-focus-mode');
         if (focusBtn) {
             focusBtn.style.display = response.suggestFocus ? 'inline-flex' : 'none';
-        }
-
-        // Trigger Live2D companion — speak + animate
-        if (state.companion && state.companion.model) {
-            state.companion.onGuardianMessage(response);
-            // Also update PiP status bar if active
-            const qualityStr = `${response.workQualityProbability}% Quality`;
-            state.companion.updatePipStatus(`${response.mood?.toUpperCase() || 'IDLE'} • ${qualityStr}`);
         }
     }
 
@@ -524,19 +579,17 @@
             flowCircle.style.background = `conic-gradient(from 0deg, ${flowColors[result.flowState]} 0%, ${flowColors[result.flowState]}40 100%)`;
         }
 
-        if ($('#flow-emoji')) $('#flow-emoji').textContent = result.flowEmoji;
-        if ($('#flow-label')) $('#flow-label').textContent = result.flowLabel;
-        if ($('#confidence-badge')) $('#confidence-badge').textContent = `${(result.confidence * 100).toFixed(0)}% conf`;
+        $('#flow-emoji').textContent = result.flowEmoji;
+        $('#flow-label').textContent = result.flowLabel;
+        $('#confidence-badge').textContent = `${(result.confidence * 100).toFixed(0)}% conf`;
 
         // Probability bars
-        if (result.probabilities && result.probabilities.length > 0) {
-            result.probabilities.forEach((prob, i) => {
-                const fill = $(`.prob-fill[data-class="${i}"]`);
-                if (fill) fill.style.width = `${prob * 100}%`;
-                const vals = $$('.prob-val');
-                if (vals && vals[i]) vals[i].textContent = `${(prob * 100).toFixed(0)}%`;
-            });
-        }
+        result.probabilities.forEach((prob, i) => {
+            const fill = $(`.prob-fill[data-class="${i}"]`);
+            if (fill) fill.style.width = `${prob * 100}%`;
+            const vals = $$('.prob-val');
+            if (vals[i]) vals[i].textContent = `${(prob * 100).toFixed(0)}%`;
+        });
 
         // ─── VISION CARD ─────────────────────────────────────
         if (result.vision) {
@@ -938,6 +991,31 @@
             ctx.lineWidth = 1;
             ctx.stroke();
         });
+
+        // Draw dip annotations — red dashed lines + reason icons at each drop
+        for (let i = 1; i < state.results.length; i++) {
+            const prev = state.results[i - 1];
+            const curr = state.results[i];
+            if (curr.flowState < prev.flowState) {
+                const p = points[i];
+                // Vertical dashed red line
+                ctx.save();
+                ctx.setLineDash([4, 4]);
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(p.x, padding.top);
+                ctx.lineTo(p.x, h - padding.bottom);
+                ctx.stroke();
+                ctx.restore();
+
+                // Reason icon at the top of the dashed line
+                const reason = buildDipReason(curr);
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(reason.icon, p.x, padding.top - 4);
+            }
+        }
     }
 
     // ─── Audio Visualizer ─────────────────────────────────────

@@ -7,11 +7,7 @@
     <meta name="description" content="ANI is a multimodal AI system that classifies your cognitive work state in real-time using vision, audio, and NLP models fused through a meta-classifier ensemble.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=7">
-    <!-- Live2D Companion Dependencies (Loaded locally to bypass CORS/COEP) -->
-    <script src="vendor/pixi.min.js"></script>
-    <script src="vendor/live2dcubismcore.min.js"></script>
-    <script src="vendor/cubism4.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css?v=6">
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -90,20 +86,22 @@
                     <div class="card flow-state-card glass" id="flow-state-card">
                         <div class="card-header">
                             <h3>Current Flow State</h3>
-                            <div style="display:flex;gap:8px;align-items:center;">
-                                <button id="btn-pip-companion" class="btn btn-outline btn-sm" title="Pop out companion (PiP)" style="font-size:0.7rem;padding:4px 10px;">🖼️ PiP</button>
-                                <span class="badge" id="confidence-badge">—</span>
-                            </div>
+                            <span class="badge" id="confidence-badge">—</span>
                         </div>
-                        <div class="flow-state-layout">
-                            <!-- Live2D Companion -->
-                            <div class="companion-panel" id="companion-canvas-container">
-                                <div class="companion-loading">
-                                    <div class="companion-loader-ring"></div>
-                                    <span>Loading companion...</span>
+                        <div class="flow-display">
+                            <div class="flow-circle" id="flow-circle">
+                                <div class="flow-inner">
+                                    <span class="flow-emoji" id="flow-emoji">🧠</span>
+                                    <span class="flow-label" id="flow-label">Waiting</span>
                                 </div>
                             </div>
-
+                        </div>
+                        <div class="flow-probabilities" id="flow-probabilities">
+                            <div class="prob-row"><span>Pseudo-Working</span><div class="prob-bar"><div class="prob-fill" data-class="0"></div></div><span class="prob-val">—</span></div>
+                            <div class="prob-row"><span>Task-Switching</span><div class="prob-bar"><div class="prob-fill" data-class="1"></div></div><span class="prob-val">—</span></div>
+                            <div class="prob-row"><span>Distracted</span><div class="prob-bar"><div class="prob-fill" data-class="2"></div></div><span class="prob-val">—</span></div>
+                            <div class="prob-row"><span>Soft Flow</span><div class="prob-bar"><div class="prob-fill" data-class="3"></div></div><span class="prob-val">—</span></div>
+                            <div class="prob-row"><span>Deep Flow</span><div class="prob-bar"><div class="prob-fill" data-class="4"></div></div><span class="prob-val">—</span></div>
                         </div>
                     </div>
 
@@ -507,14 +505,13 @@
     <div id="toast-container" class="toast-container"></div>
 
     <!-- Scripts -->
-    <script src="js/user_profile.js?v=9"></script>
-    <script src="js/audio_extractor.js?v=9"></script>
-    <script src="js/vision_preprocessor.js?v=9"></script>
-    <script src="js/nlp_tokenizer.js?v=9"></script>
-    <script src="js/screen_classifier.js?v=9"></script>
-    <script src="js/inference_pipeline.js?v=9"></script>
-    <script src="js/ani_guardian.js?v=9"></script>
-    <script src="js/ani_companion.js?v=9"></script>
-    <script src="js/ui_controller.js?v=9"></script>
+    <script src="js/user_profile.js?v=8"></script>
+    <script src="js/audio_extractor.js?v=8"></script>
+    <script src="js/vision_preprocessor.js?v=8"></script>
+    <script src="js/nlp_tokenizer.js?v=8"></script>
+    <script src="js/screen_classifier.js?v=8"></script>
+    <script src="js/inference_pipeline.js?v=8"></script>
+    <script src="js/ani_guardian.js?v=8"></script>
+    <script src="js/ui_controller.js?v=8"></script>
 </body>
 </html>
