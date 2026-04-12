@@ -57,15 +57,16 @@ class AniGuardian {
             let specificDistraction = null;
             if (ctx.hasPhone) {
                 specificDistraction = 'your phone';
-            } else if (vision?.activeTabTitle && (vision.activeTabCategory === 'distraction' || vision.activeTabCategory === 'news')) {
-                // Extract shorter app name from "Video Name - YouTube"
-                specificDistraction = vision.activeTabTitle.split(/[-|—]/).pop().trim();
-                // If it couldn't find a clean string, just use "this website"
-                if (!specificDistraction || specificDistraction.length > 20) specificDistraction = 'this website';
+            } else if (vision?.activeTabTitle && (vision.activeTabCategory === 'distraction' || vision.activeTabCategory === 'news' || vision.activeTabCategory === 'communication')) {
+                const parts = vision.activeTabTitle.split(/[-|—]/);
+                specificDistraction = parts[parts.length - 1].trim();
+                if (!specificDistraction || specificDistraction.length > 25) specificDistraction = 'that distracting website';
             } else if (vision?.distractions > 0) {
-                specificDistraction = 'the background distractions';
+                specificDistraction = 'background distractions';
+            } else if (ctx.speechClass === 'Chatting' || ctx.speechClass === 'Noise') {
+                specificDistraction = 'talking or background noise';
             } else if (ctx.hasManyTabs) {
-                specificDistraction = 'opening so many tabs';
+                specificDistraction = 'opening too many tabs';
             }
             
             if (specificDistraction) {
@@ -74,11 +75,11 @@ class AniGuardian {
                     mood: 'concerned',
                     severity: 'high',
                     reason: 'quality_dip',
-                    actions: [`Stop using ${specificDistraction}`, 'Take a deep breath and close it immediately.']
+                    actions: [`Stop engaging with ${specificDistraction}`, 'Take a deep breath and close it immediately.']
                 };
                 
                 // We'll inject the dynamic text directly into the decision object for the message generator
-                ctx.dynamicDipText = `📉 Your flow just dipped! Please stop using **${specificDistraction}** immediately. It's draining your focus.`;
+                ctx.dynamicDipText = `📉 Your flow just dipped! I detected **${specificDistraction}**. Please stop using it and return to your task immediately!`;
             }
         }
         
@@ -259,9 +260,9 @@ class AniGuardian {
                 { emoji: '🎯', text: `You're bouncing between contexts. My model gives you ${(ctx.workQuality * 100).toFixed(0)}% work quality right now. Let's boost that — commit to one task for the next Pomodoro.` },
             ],
             DISTRACTED: [
-                { emoji: '🌊', text: `Focus is drifting. ${ctx.hasPhone ? 'I see your phone. ' : ''}${ctx.distractions > 0 ? `I noticed ${ctx.distractions} visual distraction(s). ` : ''}${ctx.tabCount > 10 ? `You have ${ctx.tabCount} tabs pulling your attention. ` : ''}Try the "5-minute rule" — commit to focused work for just 5 minutes without these.` },
-                { emoji: '🧘', text: `Your attention seems scattered! ${ctx.hasPhone ? 'Your phone is right there. ' : ''}${ctx.focusRatio < 50 ? `Your visual focus is only ${(ctx.focusRatio).toFixed(0)}%. ` : ''}Take a deep breath, minimize extras, and ask: "What's the ONE thing I need to do right now?"` },
-                { emoji: '⚠️', text: `I'm picking up a distracted state. Reason: ${[ctx.hasPhone ? 'Phone detected' : '', ctx.distractions > 0 ? `${ctx.distractions} external distractions` : '', ctx.tabCount > 10 ? 'Too many tabs' : '', ctx.isSpeechErratic ? 'Erratic speech' : ''].filter(Boolean).join(', ') || 'General scattered focus'}. Let's remove the noise and jump back in.` }
+                { emoji: '⚠️', text: `You are distracted! I detected ${[ctx.hasPhone ? 'your phone' : '', ctx.distractions > 0 ? 'background visual distractions' : '', (result.vision?.activeTabCategory === 'distraction' || result.vision?.activeTabCategory === 'social') ? 'a distracting website' : '', (ctx.speechClass === 'Chatting' || ctx.speechClass === 'Noise') ? 'talking or noise' : '', ctx.tabCount > 10 ? 'too many tabs' : ''].filter(Boolean).join(' and ') || 'a break in focus'}. Please stop using it and refocus immediately.` },
+                { emoji: '🌊', text: `Focus is drifting. I noticed ${[ctx.hasPhone ? 'your phone' : '', ctx.distractions > 0 ? `visual distractions` : '', ctx.tabCount > 10 ? `cluttered tabs` : '', (ctx.speechClass === 'Chatting') ? 'background chatting' : ''].filter(Boolean).join(', ') || 'scattered attention'}. Try the "5-minute rule" — commit to focused work for just 5 minutes without these.` },
+                { emoji: '🚨', text: `Flow interrupted! Reason detected: ${[ctx.hasPhone ? 'Phone usage' : '', ctx.distractions > 0 ? `External visual distractions` : '', (ctx.speechClass === 'Chatting' || ctx.speechClass === 'Noise') ? 'Audio distraction (Chatting/Noise)' : '', ctx.hasManyTabs ? 'Task overload (too many tabs)' : ''].filter(Boolean).join(', ') || 'General scattered focus'}. Close the distractions and jump back in.` }
             ],
             SOFT_FLOW: [
                 { emoji: '🟢', text: `You're in a good rhythm! Focus ratio is solid at ${ctx.focusRatio}% and your speech pattern is steady. Keep this up — you're building toward deep flow.` },
